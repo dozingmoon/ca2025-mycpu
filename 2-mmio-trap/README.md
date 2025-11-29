@@ -318,6 +318,77 @@ Key Operations:
 - Handle read-only register protection
 - Interface with CLINT for exception/interrupt updates
 
+### Implementation Scope
+
+This core implements only Machine mode (M-mode). Supervisor and User modes, and related CSRs (`medeleg`, `mideleg`, privilege-level fields), are not implemented.
+
+This milestone focuses on asynchronous machine interrupts. Synchronous exceptions (e.g., illegal instruction, load/store faults) are partially supported (`ecall`, `ebreak`) but advanced exception features like `mtval` fault address recording are not fully utilized in this educational implementation.
+
+### CSR Address Map
+
+Quick reference table for implemented machine-mode CSRs:
+
+| Address | Name | Access | Purpose | Key Bits |
+|---------|------|--------|---------|----------|
+| 0x300 | mstatus | R/W | Machine status | MIE[3], MPIE[7] |
+| 0x301 | misa | RO | ISA and extensions | RV32I indicator |
+| 0x304 | mie | R/W | Interrupt enable | MEIE[11] |
+| 0x305 | mtvec | R/W | Trap vector base | [31:2] (direct mode only) |
+| 0x340 | mscratch | R/W | Scratch register | [31:0] |
+| 0x341 | mepc | R/W | Exception PC | [31:0] return address |
+| 0x342 | mcause | R/W | Trap cause | Interrupt[31], Code[30:0] |
+| 0x343 | mtval | R/W | Trap value | Bad address or instruction |
+| 0x344 | mip | RO (CPU) | Interrupt pending (CLINT writes) | MEIP[11] |
+| 0xC00 | cycle | RO | Cycle counter low | [31:0] read-only |
+| 0xC80 | cycleh | RO | Cycle counter high | [31:0] read-only |
+| 0xF11 | mvendorid | RO | Vendor ID | 0 (non-commercial) |
+| 0xF12 | marchid | RO | Architecture ID | 0 |
+| 0xF13 | mimpid | RO | Implementation ID | 0 |
+| 0xF14 | mhartid | RO | Hardware thread ID | 0 (single-hart) |
+
+### CSR Write Priority and Atomicity
+
+The CSR module implements a priority arbitration system to ensure atomic trap handling when both CLINT and CPU attempt to write CSRs simultaneously.
+
+#### Priority Hierarchy
+
+```
+Priority 1: CLINT Direct Writes (Highest)
+├─ Triggered by: direct_write_enable signal from CLINT
+├─ Affects CSRs: mstatus, mepc, mcause
+├─ Timing: During interrupt entry or MRET (exceptions partially supported)
+└─ Guarantee: Atomic 3-register update in single cycle
+
+Priority 2: CPU CSR Instructions (Secondary)
+├─ Triggered by: CSRRW/CSRRS/CSRRC instructions
+├─ Affects CSRs: All writable CSRs
+├─ Condition: Only when CLINT direct_write_enable = 0
+└─ Guarantee: Normal instruction execution path
+```
+
+#### Trap-Managed CSRs (Dual Priority)
+
+These CSRs can be written by both CLINT and CPU, with CLINT taking priority:
+
+- mstatus (0x300): CLINT updates MIE/MPIE bits during trap entry/exit; CPU can write via CSR instructions when no trap is active
+- mepc (0x341): CLINT saves return address during trap entry; CPU can modify via CSR instructions (useful for software context switching)
+- mcause (0x342): CLINT records trap cause; CPU can read/write for debugging or software exception handling
+
+#### CPU-Only CSRs (No CLINT Access)
+
+These CSRs are exclusively managed by CPU CSR instructions:
+
+- mie (0x304): Interrupt enable configuration (software policy)
+- mtvec (0x305): Trap handler address (software defined)
+- mscratch (0x340): Scratch register for trap handler context
+
+#### Atomicity Guarantees
+
+1. Single-Cycle Execution: All CSR operations complete in one clock cycle, preventing partial state updates
+2. Priority Override: CLINT writes block CPU writes to trap-managed CSRs, ensuring consistent trap state
+3. Combinational Reads: Read operations see current register state without pipeline delays
+4. No Race Conditions: Priority logic and single-cycle execution eliminate timing hazards
+
 ## Core-Local Interrupt Controller (CLINT)
 
 The CLINT manages interrupt and exception processing by coordinating CSR updates and control flow redirection.
@@ -345,6 +416,86 @@ When responding to an interrupt or exception:
    - Save current `mstatus.mie` to `mstatus.mpie`
    - Clear `mstatus.mie` to prevent nested interrupts
 4. Jump to Handler: Redirect PC to address in `mtvec`
+
+### Complete Interrupt Handling Sequence
+
+A full interrupt cycle from assertion to return follows these seven steps:
+
+1. Interrupt Assertion
+   - Peripheral asserts interrupt signal (mapped as machine external interrupt)
+   - Signal propagates to CLINT interrupt_flag input
+   - Example: Timer counter reaches limit and asserts `io.signal_interrupt`
+
+   Note: This design uses a simplified CLINT module that handles external interrupts via MEIE/MEIP (bit 11) and mcause=0x8000000B. In the official RISC-V platform specification, CLINT provides timer/software interrupts while PLIC handles external interrupts. For CA25, we combine local interrupt control and external interrupt handling in a single simplified module.
+
+2. Interrupt Detection
+   - CLINT samples interrupt_flag on clock edge
+   - Checks enable conditions:
+     - `mstatus.MIE = 1` (global interrupts enabled)
+     - `mie.MEIE = 1` (external interrupts enabled)
+   - If both true, assert `interrupt_assert` signal
+
+3. Atomic CSR Update (Single Cycle)
+   - CLINT asserts `direct_write_enable = 1` (priority override)
+   - CSR module performs atomic 3-register write:
+     - `mstatus`: Save MIE→MPIE (bit 7 ← bit 3), clear MIE←0 (bit 3 ← 0)
+     - `mepc`: Save PC+4 (address of next instruction) for interrupts
+     - `mcause`: Record cause (0x8000000B for external interrupt)
+   - CPU CSR instruction writes blocked during this cycle
+
+   Note: For interrupts (asynchronous), `mepc` is set to PC+4 (next instruction). For synchronous exceptions (not fully implemented here), `mepc` would be set to the address of the faulting instruction instead.
+
+4. PC Vectoring (Next Cycle)
+   - InstructionFetch receives `interrupt_assert = 1` signal
+   - PC priority logic: interrupt_address > jump_address > PC+4
+   - PC redirected to `mtvec` handler address
+   - Pipeline flushed (IF outputs NOP for one cycle)
+
+5. Handler Execution
+   - Trap handler code executes at `mtvec` address
+   - Handler saves additional context (registers) to stack
+   - Services interrupt (e.g., read Timer status, clear UART buffer)
+   - Restores saved context from stack
+   - Executes `mret` instruction to return
+
+6. Trap Return (MRET) (Single Cycle)
+   - CLINT detects `mret` opcode in ID stage
+   - CLINT asserts `direct_write_enable = 1` for restoration
+   - CSR module performs atomic update:
+     - `mstatus`: Restore MIE←MPIE (bit 3 ← bit 7), set MPIE←1 (bit 7 ← 1)
+   - InstructionFetch receives `mret_flag = 1` signal
+   - PC redirected to address in `mepc`
+
+7. Resume Execution (Next Cycle)
+   - PC returns to saved address in `mepc`
+   - Interrupted program resumes at next instruction
+   - Interrupts re-enabled (`mstatus.MIE = 1`)
+   - Normal execution continues until next interrupt
+
+#### Timing Diagram
+
+```
+Cycle | Event                          | PC        | mstatus.MIE | CLINT Signals
+------|--------------------------------|-----------|-------------|------------------
+  N   | Normal execution              | 0x1000    | 1           | -
+  N+1 | External interrupt asserts    | 0x1004    | 1           | interrupt_flag=1
+  N+2 | CLINT detects (CSR atomic)    | 0x1004    | 0 (was 1)   | direct_write_enable=1
+  N+3 | Vector to handler             | 0x8000    | 0           | interrupt_assert=1
+  N+4 | Handler executes              | 0x8004    | 0           | -
+  ...  | Handler continues             | ...       | 0           | -
+  N+50 | Handler executes mret         | 0x80C8    | 0           | mret_flag=1
+  N+51 | Restore (CSR atomic)          | 0x80C8    | 1 (was 0)   | direct_write_enable=1
+  N+52 | Resume at mepc                | 0x1004    | 1           | -
+  N+53 | Normal execution continues    | 0x1008    | 1           | -
+```
+
+#### Key Implementation Details
+
+- Atomicity: CSR updates (step 3, 6) complete in single cycle via priority arbitration
+- No Nesting: `mstatus.MIE = 0` during handler prevents nested interrupts
+- Pipeline Flush: One-cycle NOP inserted when vectoring to handler (step 4)
+- Priority Path: CLINT `direct_write_enable` overrides CPU CSR writes
+- Synchronous: All state changes occur on clock edges, no asynchronous logic
 
 ### Interrupt Exit (`mret`)
 

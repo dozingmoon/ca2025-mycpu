@@ -42,7 +42,7 @@ Key architectural features:
 - Addition-only ALU eliminates all subtraction, logic, and shift circuits
 - JALR path clears LSB (`target & ~1`) for proper alignment per RISC-V specification
 - WriteBack multiplexer selects between ALU result, memory data, or PC+4 based on instruction type
-- Unified memory serves both instruction fetch and data access (three concurrent read ports in implementation)
+- Harvard-style memory access, with separate instruction and data memories simulated. For JIT support, writes are synchronized to both memories.
 - Register file reads occur combinationally; writes happen at clock edge
 
 ## Design Highlights
@@ -148,38 +148,31 @@ Memory Layout: Validates expected address layout from jit.S assembly.
 
 Example analysis output:
 ```
-Parsed 74 signals
-
 ======================================================================
-VCD Trace Analysis Report - 0-minimal RISC-V CPU
+ VCD Trace Analysis Report - 0-minimal RISC-V CPU
 ======================================================================
 
 Overall Status: [PASS]
 
 Key Findings:
-  [OK] JIT Code Execution: 499978 cycles at buffer address (0x102c)
-  [NO] Register a0 = 42: False
-  [NO] Memory Writes: 0 total writes
+  - JIT Code Execution: OK (499978 cycles at buffer)
+  - Register a0 == 42: NO
+  - Memory Writes Detected: NO (0 writes)
 
 Detailed Statistics:
-  PC Samples: 500000
-  Max PC Address: 0x00001030
-  Register Writes: 0
-  Writes to a0 (x10): 0
+  - PC Samples: 500000
+  - Max PC Address: 0x00001030
+  - Register Writes: 0
+  - Writes to a0 (x10): 0
 
 Expected Memory Layout:
-  Entry Point:       0x00001000
-  JIT Code Buffer:   0x0000102c
-  JIT Instructions:  0x00001034
+  - Entry Point:       0x00001000
+  - JIT Code Buffer:   0x0000102c
+  - JIT Instructions:  0x00001034
 
 Interpretation:
-  [OK] CPU successfully executed JIT self-modifying code
-  [OK] PC spent 499978 cycles executing from buffer
-  [OK] JIT code execution flow verified
-
-  Note: Internal signals (register writes, memory writes)
-        are not exported to VCD in this minimal CPU design.
-        ChiselTest validates a0=42 via debug interface.
+  - [OK] CPU successfully executed the JIT self-modifying code.
+  - Note: ChiselTest validates a0=42 via a separate debug interface.
 ```
 
 View waveforms with GTKWave or Surfer for detailed signal analysis:
@@ -188,6 +181,8 @@ gtkwave trace.vcd
 # or
 surfer trace.vcd
 ```
+
+Building the Verilator simulation requires a C++ compiler that supports C++11.
 
 ### Rebuilding jit.asmbin from Source (Optional)
 
@@ -214,7 +209,7 @@ The analysis script uses only Python standard library without external dependenc
 │   │   ├── CPUBundle.scala           # Top-level I/O bundle
 │   │   ├── core/
 │   │   │   ├── InstructionFetch.scala    # PC management
-│   │   │   ├── InstructionDecode.scala   # 6-instruction decoder
+│   │   │   ├── InstructionDecode.scala   # 5-instruction decoder
 │   │   │   ├── Execute.scala             # Addition-only ALU + JALR
 │   │   │   ├── MemoryAccess.scala        # Word-aligned LW/SW
 │   │   │   ├── WriteBack.scala           # Result mux
@@ -236,7 +231,7 @@ The analysis script uses only Python standard library without external dependenc
 │   ├── link.lds                      # Linker script
 │   └── Makefile                      # Build jit.asmbin from source
 ├── scripts/
-│   └── analyze_trace.py              # VCD trace analysis tool
+│   └── analyze_trace.py              # Enhanced VCD trace analysis tool
 ├── Makefile                          # Build automation
 └── README.md                         # This file
 ```

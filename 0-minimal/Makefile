@@ -1,43 +1,54 @@
 # MyCPU is freely redistributable under the MIT License. See the file
 # LICENSE" for information on usage and redistribution of this file.
 
-SRC_DIR = src/main/resources
+# --- Variables ---
+SBT = cd .. && sbt "project minimal"
+PYTHON ?= python3
+
+SRC_DIR := src/main/resources
+VERILATOR_DIR := verilog/verilator
+OBJ_DIR := $(VERILATOR_DIR)/obj_dir
+
 SIM_TIME ?= 1000000
 SIM_VCD ?= trace.vcd
+JIT_BINARY := $(SRC_DIR)/jit.asmbin
+
+# --- Primary Targets ---
+.PHONY: all test verilator sim
 
 all: test
 
 test:
-	cd .. && sbt "project minimal" test
+	$(SBT) test
 
 verilator:
-	@mkdir -p verilog/verilator
-	@# Verify sim.cpp exists (it's a source file, should be in repository)
-	@test -f verilog/verilator/sim.cpp || { echo "ERROR: verilog/verilator/sim.cpp missing"; exit 1; }
+	@mkdir -p $(VERILATOR_DIR)
+	@test -f $(VERILATOR_DIR)/sim.cpp || { echo "ERROR: $(VERILATOR_DIR)/sim.cpp missing"; exit 1; }
+	# The following command assumes verilator is in ~/.local/bin
 	cd .. && PATH=$$HOME/.local/bin:$$PATH sbt "project minimal" "runMain board.verilator.VerilogGenerator"
-	cd verilog/verilator && verilator --trace --exe --cc sim.cpp Top.v && make -C obj_dir -f VTop.mk
+	cd $(VERILATOR_DIR) && verilator --trace --exe --cc sim.cpp Top.v && make -C obj_dir -f VTop.mk CXXFLAGS+="-std=c++17 -Wall"
 
 sim: verilator
-	@echo "Running Verilator simulation for jit.asmbin..."
-	cd verilog/verilator/obj_dir && ./VTop -vcd ../../../$(SIM_VCD) -time $(SIM_TIME) -instruction ../../../src/main/resources/jit.asmbin
-	@python3 scripts/analyze_trace.py trace.vcd
+	@echo "Running Verilator simulation for $(JIT_BINARY)..."
+	cd $(OBJ_DIR) && ./VTop -vcd ../../../$(SIM_VCD) -time $(SIM_TIME) -instruction ../../../$(JIT_BINARY)
+	@$(PYTHON) scripts/analyze_trace.py $(SIM_VCD)
+
+
+# --- Utility Targets ---
+.PHONY: indent clean distclean
 
 indent:
 	find . -name '*.scala' | xargs scalafmt
-	clang-format -i verilog/verilator/*.cpp 2>/dev/null || true
-	clang-format -i csrc/*.[ch] 2>/dev/null || true
+	clang-format -i $(VERILATOR_DIR)/*.cpp csrc/*.[ch] 2>/dev/null || true
 
 clean:
-	cd .. && sbt "project minimal" clean
-	$(RM) -r test_run_dir
-	$(RM) -r verilog/verilator/obj_dir
-	$(RM) verilog/verilator/*.v
-	$(RM) verilog/verilator/*.fir
-	$(RM) verilog/verilator/*.anno.json
-	$(RM) verilog/*.txt
-	$(RM) $(SRC_DIR)/*.o
-	$(RM) $(SIM_VCD)
+	$(SBT) clean
+	rm -rf test_run_dir $(OBJ_DIR)
+	rm -f $(VERILATOR_DIR)/*.v \
+	      $(VERILATOR_DIR)/*.fir \
+	      $(VERILATOR_DIR)/*.anno.json \
+	      verilog/*.txt \
+	      $(SRC_DIR)/*.o \
+	      $(SIM_VCD)
 
 distclean: clean
-
-.PHONY: all test verilator sim indent clean distclean

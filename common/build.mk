@@ -50,14 +50,28 @@ check-riscof:
 check-toolchain:
 	@echo "Validating RISC-V toolchain..."
 	@export PATH="$$HOME/rv/toolchain/bin:$$HOME/riscv/toolchain/bin:/opt/riscv/bin:$$PATH"; \
+	TOOLCHAIN_PREFIXES="riscv-none-elf- riscv32-unknown-elf- riscv64-unknown-elf- riscv32-unknown-linux-gnu- riscv-none-embed-"; \
 	FOUND=0; \
-	for prefix in riscv-none-elf- riscv32-unknown-elf- riscv64-unknown-elf- riscv32-unknown-linux-gnu- riscv-none-embed-; do \
-		if command -v $${prefix}gcc > /dev/null 2>&1; then \
-			echo "Toolchain found: $$(command -v $${prefix}gcc)"; \
+	for prefix in $$TOOLCHAIN_PREFIXES; do \
+		GCC_PATH=$$(command -v $${prefix}gcc); \
+		if [ -n "$$GCC_PATH" ]; then \
+			echo "Toolchain found: $$GCC_PATH"; \
+			TOOLCHAIN_DIR=$$(cd "$$(dirname "$$GCC_PATH")/.." && pwd -P); \
 			FOUND=1; \
 			break; \
 		fi; \
 	done; \
+	RISCOF_TOOLCHAIN_FOUND=0; \
+	if [ -n "$$TOOLCHAIN_DIR" ] && [ "$$TOOLCHAIN_DIR" = "$$HOME/riscv/toolchain" ]; then \
+		RISCOF_TOOLCHAIN_FOUND=1; \
+	elif [ -n "$$RISCV" ]; then \
+    	for prefix in $$TOOLCHAIN_PREFIXES; do \
+        	if [ -x "$$RISCV/bin/$${prefix}gcc" ]; then \
+				RISCOF_TOOLCHAIN_FOUND=1; \
+				break; \
+			fi; \
+    	done; \
+	fi; \
 	if [ $$FOUND -eq 0 ]; then \
 		echo "Error: RISC-V toolchain not found"; \
 		echo ""; \
@@ -70,6 +84,10 @@ check-toolchain:
 		echo "Please install RISC-V GNU toolchain."; \
 		echo "See: https://github.com/riscv-collab/riscv-gnu-toolchain"; \
 		echo ""; \
+		exit 1; \
+	elif [ $$FOUND -eq 1 ] && [ $$RISCOF_TOOLCHAIN_FOUND -eq 0 ]; then \
+		echo "Error: Toolchain not valid for RISCOF"; \
+		echo "   Try: export RISCV=$$TOOLCHAIN_DIR"; \
 		exit 1; \
 	fi
 

@@ -14,10 +14,8 @@ class Execute extends Module {
     val instruction         = Input(UInt(Parameters.InstructionWidth))
     val instruction_address = Input(UInt(Parameters.AddrWidth))
     val reg1_data           = Input(UInt(Parameters.DataWidth))
-    val reg2_data           = Input(UInt(Parameters.DataWidth))
     val immediate           = Input(UInt(Parameters.DataWidth))
     val aluop1_source       = Input(UInt(1.W))
-    val aluop2_source       = Input(UInt(1.W))
 
     val mem_alu_result  = Output(UInt(Parameters.DataWidth))
     val if_jump_flag    = Output(Bool())
@@ -28,7 +26,7 @@ class Execute extends Module {
 
   // ALU: simple addition only (all our instructions use ADD)
   val aluOp1    = Mux(io.aluop1_source === ALUOp1Source.InstructionAddress, io.instruction_address, io.reg1_data)
-  val aluOp2    = Mux(io.aluop2_source === ALUOp2Source.Immediate, io.immediate, io.reg2_data)
+  val aluOp2    = io.immediate
   val aluResult = aluOp1 + aluOp2
 
   io.mem_alu_result := aluResult
