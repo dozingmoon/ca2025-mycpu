@@ -125,7 +125,7 @@ class Execute extends Module {
   // JALR address calculation:
   //   1. Add register value and immediate
   //   2. Clear LSB (2-byte alignment)
-  val jalrSum      = branchTarget
+  val jalrSum      = io.reg1_data + io.immediate
 
   // TODO: Clear LSB using bit concatenation
   // Hint: Extract upper bits and append zero

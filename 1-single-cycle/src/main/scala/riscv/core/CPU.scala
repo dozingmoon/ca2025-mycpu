@@ -52,7 +52,7 @@ class CPU extends Module {
   val mem        = Module(new MemoryAccess)
   val wb         = Module(new WriteBack)
 
-  io.deviceSelect := mem.io.memory_bundle
+  io.deviceSelect := io.memory_bundle//mem.io.memory_bundle
     .address(Parameters.AddrBits - 1, Parameters.AddrBits - Parameters.SlaveDeviceCountBits)
 
   inst_fetch.io.jump_address_id       := ex.io.if_jump_address
