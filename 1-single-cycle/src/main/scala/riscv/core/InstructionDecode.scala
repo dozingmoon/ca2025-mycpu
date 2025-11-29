@@ -212,7 +212,7 @@ class InstructionDecode extends Module {
   val aluOp1Sel = WireDefault(ALUOp1Source.Register)
   // TODO: Determine when to use PC as first operand
   // Hint: Consider instructions that need PC-relative addressing
-  when(isAuipc) {
+  when(isAuipc || isJal || isBranch) {
     aluOp1Sel := ALUOp1Source.InstructionAddress
   }
 
