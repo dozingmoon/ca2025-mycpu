@@ -49,21 +49,21 @@ class InstructionDecode extends Module {
     val reg_write_address      = Output(UInt(Parameters.PhysicalRegisterAddrWidth))
   })
 
-  // --- Instruction Fields ---
+  // Instruction Fields
   val instruction = io.instruction
   val opcode      = instruction(6, 0)
   val rs1         = instruction(19, 15)
   val rs2         = instruction(24, 20)
   val rd          = instruction(11, 7)
 
-  // --- Instruction Type Decoding ---
+  // Instruction Type Decoding
   val isLoad  = opcode === InstructionTypes.Load  // LW
   val isStore = opcode === InstructionTypes.Store // SW
   val isOpImm = opcode === InstructionTypes.OpImm // ADDI
   val isAuipc = opcode === InstructionTypes.Auipc // AUIPC
   val isJalr  = opcode === InstructionTypes.Jalr  // JALR
 
-  // --- Control Signal Generation ---
+  // Control Signal Generation
 
   // Register usage
   val usesRs1  = isLoad || isStore || isOpImm || isJalr
@@ -84,7 +84,7 @@ class InstructionDecode extends Module {
   // ALU operand 2 source (all supported instructions use an immediate)
   val aluOp2Sel = ALUOp2Source.Immediate
 
-  // --- Immediate Extraction ---
+  // Immediate Extraction
   // I-type for Load, OpImm, Jalr
   val immI = Cat(Fill(Parameters.DataBits - 12, instruction(31)), instruction(31, 20))
   // S-type for Store
@@ -99,7 +99,7 @@ class InstructionDecode extends Module {
     )
   )
 
-  // --- Output Assignments ---
+  // Output Assignments
   io.regs_reg1_read_address := Mux(usesRs1, rs1, 0.U)
   io.regs_reg2_read_address := Mux(usesRs2, rs2, 0.U)
   io.ex_immediate           := immediate

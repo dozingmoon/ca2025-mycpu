@@ -19,7 +19,7 @@ import sys
 from collections import defaultdict
 from typing import Dict, DefaultDict
 
-# --- Configuration ---
+# Configuration
 
 # Expected memory addresses from the jit.S assembly file.
 JIT_CODE_BUFFER: int = 0x102c
@@ -37,7 +37,7 @@ A0_REGISTER_INDEX: int = 10
 MIN_CYCLES_IN_JIT_BUFFER: int = 10000
 JIT_BUFFER_END: int = JIT_CODE_BUFFER + 0x10
 
-# --- VCD Analyzer Class ---
+# VCD Analyzer Class
 
 class VCDAnalyzer:
     """Parses and analyzes VCD files to extract simulation statistics."""
@@ -169,7 +169,7 @@ class VCDAnalyzer:
 
         return jit_executed
 
-# --- Main Execution ---
+# Main Execution
 
 def main() -> None:
     """Main function to parse arguments and run the VCD analyzer."""

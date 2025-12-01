@@ -1,7 +1,7 @@
 # MyCPU is freely redistributable under the MIT License. See the file
 # LICENSE" for information on usage and redistribution of this file.
 
-# --- Variables ---
+# Variables
 SBT = cd .. && sbt "project minimal"
 PYTHON ?= python3
 
@@ -13,7 +13,7 @@ SIM_TIME ?= 1000000
 SIM_VCD ?= trace.vcd
 JIT_BINARY := $(SRC_DIR)/jit.asmbin
 
-# --- Primary Targets ---
+# Primary Targets
 .PHONY: all test verilator sim
 
 all: test
@@ -34,7 +34,7 @@ sim: verilator
 	@$(PYTHON) scripts/analyze_trace.py $(SIM_VCD)
 
 
-# --- Utility Targets ---
+# Utility Targets
 .PHONY: indent clean distclean
 
 indent:
