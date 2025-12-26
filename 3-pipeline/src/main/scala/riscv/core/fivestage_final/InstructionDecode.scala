@@ -152,8 +152,8 @@ class InstructionDecode extends Module {
     val clint_jump_address     = Output(UInt(Parameters.AddrWidth)) // clint.io.jump_address
     val if_jump_flag           = Output(Bool())                     // ctrl.io.jump_flag , inst_fetch.io.jump_flag_id
     val if_jump_address        = Output(UInt(Parameters.AddrWidth)) // inst_fetch.io.jump_address_id
-    val uses_rs1_id = Output(Bool()) // tells Control/Forwarding whether rs1 is valid for this instruction
-    val uses_rs2_id = Output(Bool()) // tells Control/Forwarding whether rs2 is valid for this instruction
+    val uses_rs1_id            = Output(Bool())                     // tells Control/Forwarding whether rs1 is valid for this instruction
+    val uses_rs2_id            = Output(Bool())                     // tells Control/Forwarding whether rs2 is valid for this instruction
   })
   val opcode = io.instruction(6, 0)
   val funct3 = io.instruction(14, 12)
@@ -162,17 +162,17 @@ class InstructionDecode extends Module {
   val rs1    = io.instruction(19, 15)
   val rs2    = io.instruction(24, 20)
   val uses_rs2 = (opcode === InstructionTypes.RM) ||
-              (opcode === InstructionTypes.S)  ||
-              (opcode === InstructionTypes.B)
+    (opcode === InstructionTypes.S) ||
+    (opcode === InstructionTypes.B)
 
-  val uses_rs1 =  !(opcode === Instructions.jal) &&
-                  !(opcode === Instructions.lui) &&
-                  !(opcode === Instructions.auipc) &&
-                  !(opcode === Instructions.fence) &&
-                  !(opcode === Instructions.csr &&
-                    (funct3 === InstructionsTypeCSR.csrrwi ||
-                    funct3 === InstructionsTypeCSR.csrrsi ||
-                    funct3 === InstructionsTypeCSR.csrrci))
+  val uses_rs1 = !(opcode === Instructions.jal) &&
+    !(opcode === Instructions.lui) &&
+    !(opcode === Instructions.auipc) &&
+    !(opcode === Instructions.fence) &&
+    !(opcode === Instructions.csr &&
+      (funct3 === InstructionsTypeCSR.csrrwi ||
+        funct3 === InstructionsTypeCSR.csrrsi ||
+        funct3 === InstructionsTypeCSR.csrrci))
 
   io.uses_rs2_id := uses_rs2
   io.uses_rs1_id := uses_rs1

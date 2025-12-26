@@ -61,8 +61,8 @@ class Control extends Module {
     val rd_ex                  = Input(UInt(Parameters.PhysicalRegisterAddrWidth)) // id2ex.io.output_regs_write_address
     val memory_read_enable_mem = Input(Bool())                                     // ex2mem.io.output_memory_read_enable   //
     val rd_mem                 = Input(UInt(Parameters.PhysicalRegisterAddrWidth)) // ex2mem.io.output_regs_write_address   //
-    val uses_rs1_id = Input(Bool())  // true only if current ID instruction really reads rs1
-    val uses_rs2_id = Input(Bool())  // true only if current ID instruction really reads rs2
+    val uses_rs1_id            = Input(Bool())                                     // true only if current ID instruction really reads rs1
+    val uses_rs2_id            = Input(Bool())                                     // true only if current ID instruction really reads rs2
 
     val if_flush = Output(Bool())
     val id_flush = Output(Bool())
@@ -113,9 +113,9 @@ class Control extends Module {
     ((io.memory_read_enable_ex || io.jump_instruction_id) && // Either:
       // - Jump in ID needs register value, OR
       // - Load in EX (load-use hazard)
-      (io.rd_ex =/= 0.U) &&                                 // Destination is not x0
-      ( (io.uses_rs1_id && (io.rd_ex === io.rs1_id)) || (io.uses_rs2_id && (io.rd_ex === io.rs2_id)) ) // Destination matches ID source
-    ) 
+      (io.rd_ex =/= 0.U) &&                                                                          // Destination is not x0
+      ((io.uses_rs1_id && (io.rd_ex === io.rs1_id)) || (io.uses_rs2_id && (io.rd_ex === io.rs2_id))) // Destination matches ID source
+    )
     //
     // Examples triggering Condition 1:
     // a) Jump dependency: ADD x1, x2, x3 [EX]; JALR x0, x1, 0 [ID] → stall
@@ -132,10 +132,10 @@ class Control extends Module {
         // 3. Destination register is not x0
         // 4. Destination register conflicts with ID source registers
         //
-        ( io.jump_instruction_id &&                              // Jump instruction in ID
-          io.memory_read_enable_mem &&                          // Load instruction in MEM
-          (io.rd_mem =/= 0.U) &&                                  // Load destination not x0
-          ((io.uses_rs1_id && (io.rd_mem === io.rs1_id)) || (io.uses_rs2_id && (io.rd_mem === io.rs2_id)))  // Load dest matches jump source
+        (io.jump_instruction_id &&                                                                         // Jump instruction in ID
+          io.memory_read_enable_mem &&                                                                     // Load instruction in MEM
+          (io.rd_mem =/= 0.U) &&                                                                           // Load destination not x0
+          ((io.uses_rs1_id && (io.rd_mem === io.rs1_id)) || (io.uses_rs2_id && (io.rd_mem === io.rs2_id))) // Load dest matches jump source
         )
         //
         // Example triggering Condition 2:
