@@ -276,7 +276,7 @@ class PipelinedCPU extends Module {
 
   // IndirectBTB misprediction detection (for non-return JALR: function pointers, vtables)
   // Gate with !branch_hazard because actual_target uses forwarded data that may be stale during hazard
-  val is_indirect_jalr = is_jalr && !is_return // JALR that is NOT a return pattern
+  val is_indirect_jalr = is_jalr && !is_return // JALR that is not a return pattern
   val ibtb_wrong_target =
     ibtb_predicted && is_indirect_jalr && (ibtb_pred_target =/= actual_target) && !id.io.branch_hazard
   val ibtb_correct_predict = ibtb_predicted && is_indirect_jalr && (ibtb_pred_target === actual_target)
@@ -286,7 +286,7 @@ class PipelinedCPU extends Module {
   // If RAS prediction was wrong, the speculative pop removed an incorrect entry anyway
   inst_fetch.io.ras_pop := false.B // Speculative pop already done in IF stage
 
-  // RAS restore: DISABLED
+  // RAS restore: disabled
   // The previous implementation incorrectly pushed actual_target (JALR destination = rs1+imm),
   // but the RAS should only contain return addresses (PC+4 from JAL/JALR calls).
   // When RAS mispredicts, the popped value was wrong anyway (stack corrupted or empty),
@@ -301,7 +301,7 @@ class PipelinedCPU extends Module {
   inst_fetch.io.ras_restore_valid := false.B
 
   // ID-stage forwarding for register data (used by ID2EX and IndirectBTB hash)
-  // This is CRITICAL for cases where an instruction reads a register written by
+  // This is critical for cases where an instruction reads a register written by
   // an instruction 2 stages ahead (e.g., jal writes ra, then addi, then sw reads ra).
   // By the time sw reaches EX stage, jal is past WB and EX forwarding can't help.
   // ID-stage forwarding captures the correct value when sw is in ID stage.
@@ -329,14 +329,14 @@ class PipelinedCPU extends Module {
   inst_fetch.io.ibtb_update_target   := actual_target
 
   if2id.io.stall := ctrl.io.if_stall || mem_stall
-  // CRITICAL FIX: Suppress IF2ID flush during mem_stall!
+  // Suppress IF2ID flush during mem_stall!
   //
   // When a JAL/JALR triggers if_flush while mem_stall is active:
   //   - IF2ID is stalled (holds JAL instruction)
   //   - ID2EX is stalled (holds previous instruction)
   //   - If we flush IF2ID immediately, the JAL is lost before ID2EX can capture it
   //   - JAL never reaches EX/MEM/WB, so ra never gets written with PC+4
-  //   - Any subsequent sw ra stores the WRONG (stale) return address!
+  //   - Any subsequent sw ra stores the wrong (stale) return address!
   //
   // The fix: suppress IF2ID flush until mem_stall releases. The JAL stays in IF2ID,
   // and when mem_stall releases, ID2EX captures JAL before IF2ID flushes on the same
@@ -352,7 +352,7 @@ class PipelinedCPU extends Module {
   // - btb_mispredict: BTB predicted wrong direction, target, or hit on non-branch
   // - ras_wrong_target: RAS predicted wrong return address
   // - ibtb_wrong_target: IndirectBTB predicted wrong target for non-return JALR
-  // - SKIP flush if BTB, RAS, or IndirectBTB prediction was correct
+  // - Skip flush if BTB, RAS, or IndirectBTB prediction was correct
   //   This is the key optimization: when prediction was correct,
   //   IF already fetched the correct next instruction, so no flush needed!
   val prediction_correct = btb_correct_prediction || ras_correct_predict || ibtb_correct_predict
@@ -382,12 +382,12 @@ class PipelinedCPU extends Module {
   id.io.branch_hazard             := ctrl.io.branch_hazard
 
   id2ex.io.stall := mem_stall
-  // Do not flush id2ex when mem_stall is active - EXCEPT for JAL/JALR hazards!
+  // Do not flush id2ex when mem_stall is active - except for JAL/JALR hazards!
   // When the memory is stalling (e.g., multi-cycle store), the id2ex register holds
   // the instruction waiting in EX stage. For load-use hazards, the flush is suppressed
   // because the hazard will be re-evaluated when the memory stall releases.
   //
-  // CRITICAL: JAL/JALR hazards MUST flush immediately even during mem_stall!
+  // JAL/JALR hazards must flush immediately even during mem_stall!
   // Without this, sw ra captures the stale register file value instead of waiting
   // for the correct forwarded PC+4 value from the JAL/JALR instruction.
   // This was the root cause of the vga_simple bug where sw ra saved 0x1050 instead of 0x125c.
@@ -530,7 +530,7 @@ class PipelinedCPU extends Module {
   csr_regs.io.branch_misprediction := (btb_mispredict || ras_wrong_target || ibtb_wrong_target) && !mem_stall
 
   // Stall type breakdown for detailed performance analysis
-  // Stall counters are MUTUALLY EXCLUSIVE to avoid double-counting.
+  // Stall counters are mutually exclusive to avoid double-counting.
   // Priority order: memory > control > hazard
   // Only one stall type can increment per cycle.
   //
@@ -545,7 +545,7 @@ class PipelinedCPU extends Module {
   // - RAS misprediction correction
   // - IndirectBTB misprediction correction
   //
-  // PULSE SEMANTICS: This is an event counter, not a cycle counter.
+  // Pulse semantics: This is an event counter, not a cycle counter.
   // Guaranteed single-cycle pulse because:
   // 1. Misprediction detected only when branch is in ID stage
   // 2. Next cycle: ID flushed with NOP → signals go low (no branch in ID)
@@ -568,7 +568,7 @@ class PipelinedCPU extends Module {
   // Both cases cause a 1-cycle flush penalty that could have been avoided.
   // Note: Wrong direction (predicted taken, actually not taken) is counted in mhpmcounter3.
   //
-  // PULSE SEMANTICS: Single-cycle event (branch_hazard and mem_stall gating).
+  // Pulse semantics: Single-cycle event (branch_hazard and mem_stall gating).
   val btb_miss_penalty = (
     (!btb_predicted && is_branch_or_jump && actual_taken) || // BTB miss (cold)
       btb_wrong_target                                       // BTB wrong target (stale)
@@ -581,7 +581,7 @@ class PipelinedCPU extends Module {
   // Counts all conditional branches and unconditional jumps (JAL, JALR) when they resolve.
   // Does not count branches held due to branch_hazard (they'll be counted when they resolve).
   //
-  // PULSE SEMANTICS: Single-cycle event per branch (branch_hazard and mem_stall gating).
+  // Pulse semantics: Single-cycle event per branch (branch_hazard and mem_stall gating).
   csr_regs.io.branch_resolved := is_branch_or_jump && !id.io.branch_hazard && !mem_stall
 
   // BTB predictions (mhpmcounter9): Count when BTB predicted "taken" for a resolved branch
@@ -589,7 +589,7 @@ class PipelinedCPU extends Module {
   // Combined with mhpmcounter3 (mispredictions), can isolate BTB accuracy vs RAS accuracy.
   // Note: Only counts predictions that actually resolved (excludes squashed predictions).
   //
-  // PULSE SEMANTICS: Single-cycle event per prediction (branch_hazard and mem_stall gating).
+  // Pulse semantics: Single-cycle event per prediction (branch_hazard and mem_stall gating).
   csr_regs.io.btb_predicted := btb_predicted && is_branch_or_jump && !id.io.branch_hazard && !mem_stall
 
   // Initialize unused CPUBundle signals (used by wrapper, not by pipeline core)

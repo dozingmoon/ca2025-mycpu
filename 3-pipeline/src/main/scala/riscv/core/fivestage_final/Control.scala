@@ -61,6 +61,8 @@ class Control extends Module {
     val rd_ex                  = Input(UInt(Parameters.PhysicalRegisterAddrWidth)) // id2ex.io.output_regs_write_address
     val memory_read_enable_mem = Input(Bool())                                     // ex2mem.io.output_memory_read_enable   //
     val rd_mem                 = Input(UInt(Parameters.PhysicalRegisterAddrWidth)) // ex2mem.io.output_regs_write_address   //
+    val uses_rs1_id            = Input(Bool())                                     // true only if current ID instruction really reads rs1
+    val uses_rs2_id            = Input(Bool())                                     // true only if current ID instruction really reads rs2
 
     val if_flush = Output(Bool())
     val id_flush = Output(Bool())
@@ -84,6 +86,10 @@ class Control extends Module {
   // 1. Load-use hazard: Load result used immediately by next instruction
   // 2. Jump-related hazard: Jump instruction needs register value not ready
   // 3. Control hazard: Branch/jump instruction changes PC
+  // Hint: For data hazards type 1 and 2, check for register dependencies
+  //   Use the decoded `uses_rs1_id` / `uses_rs2_id` flags to test whether the
+  //   current ID-stage instruction actually reads rs1/rs2; only then should a
+  //   register-number match be considered a true RAW dependency.
   //
   // Control signals:
   // - pc_stall: Freeze PC (don't fetch next instruction)
@@ -104,11 +110,12 @@ class Control extends Module {
     // 3. AND destination register is not x0
     // 4. AND destination register conflicts with ID source registers
     //
-    ((io.jump_instruction_id || io.memory_read_enable_ex) && // Either:
+    ((io.memory_read_enable_ex || io.jump_instruction_id) && // Either:
       // - Jump in ID needs register value, OR
       // - Load in EX (load-use hazard)
-      io.rd_ex =/= 0.U &&                                 // Destination is not x0
-      (io.rd_ex === io.rs1_id || io.rd_ex === io.rs2_id)) // Destination matches ID source
+      (io.rd_ex =/= 0.U) &&                                                                          // Destination is not x0
+      ((io.uses_rs1_id && (io.rd_ex === io.rs1_id)) || (io.uses_rs2_id && (io.rd_ex === io.rs2_id))) // Destination matches ID source
+    )
     //
     // Examples triggering Condition 1:
     // a) Jump dependency: ADD x1, x2, x3 [EX]; JALR x0, x1, 0 [ID] → stall
@@ -125,10 +132,11 @@ class Control extends Module {
         // 3. Destination register is not x0
         // 4. Destination register conflicts with ID source registers
         //
-        (io.jump_instruction_id &&                              // Jump instruction in ID
-          io.memory_read_enable_mem &&                          // Load instruction in MEM
-          io.rd_mem =/= 0.U &&                                  // Load destination not x0
-          (io.rd_mem === io.rs1_id || io.rd_mem === io.rs2_id)) // Load dest matches jump source
+        (io.jump_instruction_id &&                                                                         // Jump instruction in ID
+          io.memory_read_enable_mem &&                                                                     // Load instruction in MEM
+          (io.rd_mem =/= 0.U) &&                                                                           // Load destination not x0
+          ((io.uses_rs1_id && (io.rd_mem === io.rs1_id)) || (io.uses_rs2_id && (io.rd_mem === io.rs2_id))) // Load dest matches jump source
+        )
         //
         // Example triggering Condition 2:
         // LW x1, 0(x2) [MEM]; NOP [EX]; JALR x0, x1, 0 [ID]

@@ -84,7 +84,7 @@ class MemoryAccess extends Module {
 
   // Track when a read just completed so we can extend the validity of
   // latched control signals for one more cycle. This handles the case where the
-  // dependent instruction arrives in EX on the cycle AFTER the load completes.
+  // dependent instruction arrives in EX on the cycle after the load completes.
   // Without this, forward_to_ex would show the wrong value (ALU result instead of
   // loaded data) because effective_regs_write_source switches too early.
   val read_just_completed = RegInit(false.B)
@@ -93,13 +93,13 @@ class MemoryAccess extends Module {
   def on_bus_transaction_finished() = {
     mem_access_state   := MemoryAccessStates.Idle
     io.ctrl_stall_flag := false.B
-    // NOTE: read_just_completed is set ONLY in Read completion path, NOT here
+    // Note: read_just_completed is set only in Read completion path, not here
     // Setting it for Write completions was a bug causing wrong wb_regs_write_source
   }
 
   // Clear read_just_completed on the cycle after it was set.
   // This ensures latched values are used for exactly one cycle after completion.
-  // CRITICAL FIX: The original implementation had a bug where this signal would
+  // The original implementation had a bug where this signal would
   // not be cleared if a new memory transaction started in the same cycle, causing
   // the signal to get "stuck" high. The corrected logic is unconditional.
   when(read_just_completed) {
@@ -186,17 +186,17 @@ class MemoryAccess extends Module {
       )
       // Store in register for persistence after read_valid goes low
       latched_memory_read_data := processed_data
-      // Also output immediately for forwarding on THIS cycle
+      // Also output immediately for forwarding on this cycle
       // Without this, the forwarding path would see the old latch value (0)
       io.wb_memory_read_data := processed_data
-      // Signal that a READ just completed - used by wb_effective_regs_write_source MUX
+      // Signal that a read just completed - used by wb_effective_regs_write_source MUX
       // to extend latched control signals for one more cycle
       read_just_completed := true.B
       on_bus_transaction_finished()
     }
   }.elsewhen(mem_access_state === MemoryAccessStates.Write) {
     // In Write state: wait for write_valid (BRESP) to complete transaction
-    // CRITICAL: Must keep stall asserted until BRESP received.
+    // Must keep stall asserted until BRESP received.
     // The posted-write optimization (releasing stall on write_data_accepted)
     // was buggy: while BRESP is pending, the pipeline advances but the state
     // machine remains in Write state, causing any new load/store in MEM stage
@@ -270,22 +270,22 @@ class MemoryAccess extends Module {
     }
   }
 
-  // CRITICAL: Forwarding and Writeback have DIFFERENT timing requirements!
+  // Forwarding and writeback have different timing requirements!
   //
   // When a load completes (read_just_completed = true):
   // - State transitions: Read → Idle (same cycle as read_valid)
   // - mem_stall releases, allowing MEM2WB to capture at clock edge
   // - We use latched values for writeback to preserve the load's info
   //
-  // For FORWARDING (forward_to_ex):
-  // - Only use latched values while IN Read state (during the bus transaction)
-  // - After completion, the NEW instruction is in MEM stage, so use its values
+  // For forwarding (forward_to_ex):
+  // - Only use latched values while in Read state (during the bus transaction)
+  // - After completion, the new instruction is in MEM stage, so use its values
   // - This allows correct forwarding from the new instruction to EX stage
   //
-  // For WRITEBACK (wb_regs_write_source):
-  // - Must use latched values for one EXTRA cycle after read completes
-  // - Because MEM2WB captures at clock edge AFTER read_just_completed is set
-  // - Without this, MEM2WB captures the NEW instruction's regs_write_source,
+  // For writeback (wb_regs_write_source):
+  // - Must use latched values for one extra cycle after read completes
+  // - Because MEM2WB captures at clock edge after read_just_completed is set
+  // - Without this, MEM2WB captures the new instruction's regs_write_source,
   //   causing WB to use ALU result instead of loaded data!
   //
   // Bug pattern this fixes:
@@ -295,12 +295,12 @@ class MemoryAccess extends Module {
   // - WB writes ALU result to register instead of loaded data!
 
   // For writeback: only use latched values while waiting for read_valid
-  // When read_valid arrives, ex2mem still holds the LOAD so io.* are correct
-  // BUG FIX: Using in_read_or_just_completed caused NEW instruction's rd to be
+  // When read_valid arrives, ex2mem still holds the load so io.* are correct
+  // Bug fix: Using in_read_or_just_completed caused new instruction's rd to be
   // replaced by latched rd when read_just_completed was true
   val in_active_read = mem_access_state === MemoryAccessStates.Read && !io.bus.read_valid
 
-  // For FORWARDING data source selection (forward_to_ex)
+  // For forwarding data source selection (forward_to_ex)
   val forward_regs_write_source = Mux(
     in_active_read,
     latched_regs_write_source,

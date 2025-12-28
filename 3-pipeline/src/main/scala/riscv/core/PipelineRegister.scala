@@ -17,17 +17,17 @@ class PipelineRegister(width: Int = Parameters.DataBits, defaultValue: UInt = 0.
   val reg = RegInit(UInt(width.W), defaultValue)
 
   when(io.flush) {
-  // Flush : Clear register contents (Highest Priority)
+    // Flush : Clear register contents (Highest Priority)
     reg := defaultValue
   }
-  .elsewhen(io.stall) {
-  // Stall : Freeze register contents
-    reg := reg
-  }
-  .otherwise {
-  // Normal action: Update register contents with new input
-    reg := io.in
-  }
+    .elsewhen(io.stall) {
+      // Stall : Freeze register contents
+      reg := reg
+    }
+    .otherwise {
+      // Normal action: Update register contents with new input
+      reg := io.in
+    }
   // Connect register to output.
   // Being driven by a register breaks the combinational timing path.
   io.out := reg

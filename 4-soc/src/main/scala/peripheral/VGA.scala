@@ -175,7 +175,7 @@ class VGA extends Module {
     val palette_idx      = (addr - Reg.PALETTE_BASE.U) >> 2
 
     // AXI4-Lite Read handling
-    // CRITICAL: read_valid must ONLY be asserted when peripheral has valid data ready
+    // read_valid must only be asserted when peripheral has valid data ready
     // in response to a read request. The AXI4LiteSlave state machine waits for
     // read_valid before capturing read_data and setting RVALID.
     //

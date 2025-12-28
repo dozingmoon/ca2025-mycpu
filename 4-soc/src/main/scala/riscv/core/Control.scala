@@ -239,7 +239,7 @@ class Control extends Module {
     // Signal to suppress branch decision when RAW hazard exists
     // Without this, branch comparison uses stale forwarded value from wrong pipeline stage
     val branch_hazard = Output(Bool())
-    // Signal indicating JAL/JALR hazard - must NOT be suppressed by mem_stall
+    // Signal indicating JAL/JALR hazard - must not be suppressed by mem_stall
     // JAL/JALR hazards require immediate id_flush even during memory operations
     val jal_jalr_hazard = Output(Bool())
   })
@@ -273,8 +273,8 @@ class Control extends Module {
   val store_load_hazard = io.memory_write_enable_mem && io.memory_read_enable_ex
 
   // ============ JAL/JALR Hazard Detection ============
-  // JAL/JALR compute rd=PC+4 in WriteBack stage, NOT EX stage.
-  // Therefore, forwarding from MEM stage gives the WRONG value (ALU result, not PC+4).
+  // JAL/JALR compute rd=PC+4 in WriteBack stage, not EX stage.
+  // Therefore, forwarding from MEM stage gives the wrong value (ALU result, not PC+4).
   // We must stall until JAL/JALR reaches WB where the correct value is computed.
   //
   // Example triggering this hazard:
@@ -303,8 +303,8 @@ class Control extends Module {
     (io.rd_mem === io.rs1_id || io.rd_mem === io.rs2_id)
 
   // ============ JAL/JALR Hazard in WB Stage ============
-  // CRITICAL: Due to pipeline register delay, when JAL/JALR enters WB at a rising edge,
-  // mem2wb.io.output still reflects the PREVIOUS cycle's values until after combinational
+  // Due to pipeline register delay, when JAL/JALR enters WB at a rising edge,
+  // mem2wb.io.output still reflects the previous cycle's values until after combinational
   // logic settles. If ID tries to read from forwarding at this exact cycle, it gets the
   // wrong rd_wb (from the bubble/previous instruction, not JAL).
   //

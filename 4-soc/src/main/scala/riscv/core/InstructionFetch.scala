@@ -157,7 +157,7 @@ class InstructionFetch extends Module {
   io.ras_predicted_target := ras.io.predicted_addr
 
   // IndirectBTB prediction: for non-return JALR (function pointers, vtables)
-  // Only predict when instruction is JALR but NOT a return pattern (RAS handles returns)
+  // Only predict when instruction is JALR but not a return pattern (RAS handles returns)
   val is_indirect_jalr    = is_jalr && !is_return && io.instruction_valid && !io.stall_flag_ctrl
   val ibtb_prediction_hit = ibtb.io.hit && is_indirect_jalr
 
@@ -172,7 +172,7 @@ class InstructionFetch extends Module {
   val pending_jump      = RegInit(false.B)
   val pending_jump_addr = RegInit(0.U(Parameters.AddrWidth))
 
-  // Shadow registers to capture jump info BEFORE flush clears ID stage
+  // Shadow registers to capture jump info before flush clears ID stage
   // This solves the race condition where:
   // - Cycle N: Jump in ID triggers flush
   // - Cycle N+1: Jump moves to EX, ID flushed, stall begins
