@@ -24,17 +24,7 @@ verilator:
 		make -C obj_dir -f VTop.mk
 
 sim: verilator
-	@if [ -z "$(BINARY)" ]; then \
-		echo "Usage: make sim BINARY=<path/to/file.asmbin>"; \
-		echo "Example: make sim BINARY=csrc/nyancat.asmbin"; \
-		exit 1; \
-	fi
-	@if [ ! -f "$(BINARY)" ]; then \
-		echo "Error: Binary file not found: $(BINARY)"; \
-		exit 1; \
-	fi
-	@echo "🎮 Running simulation with $(BINARY)..."
-	cd verilog/verilator/obj_dir && ./VTop -i ../../../$(BINARY)
+	cd verilog/verilator/obj_dir && ./VTop -vcd ../../../$(SIM_VCD) -time $(SIM_TIME) $(subst src/main/resources/,../../../src/main/resources/,$(SIM_ARGS))
 
 check-vga: verilator
 	@echo "🔄 Building nyancat binary..."
