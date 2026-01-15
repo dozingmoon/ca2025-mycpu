@@ -115,8 +115,14 @@ class InstructionFetch extends Module {
   })
   val pc = RegInit(ProgramCounter.EntryAddress)
 
-  // Branch Target Buffer for branch prediction (32 entries for better coverage)
-  val btb = Module(new BranchTargetBuffer(entries = 32))
+  // Branch Target Buffer / Predictor
+  // Select implementation: Simple BTB or GShare
+  val useGShare = true // Set to true to use GShare, false for original BTB
+  val btb = if (useGShare) {
+    Module(new GSharePredictor(entries = 32, historyLength = 8))
+  } else {
+    Module(new BranchTargetBuffer(entries = 32))
+  }
   btb.io.pc := pc
 
   // BTB prediction: use predicted target if BTB predicts taken

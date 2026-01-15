@@ -18,13 +18,25 @@ verilator:
 			exit 1; \
 		fi; \
 	fi
-	cd verilog/verilator && verilator --exe --cc sim.cpp Top.v \
+	cd verilog/verilator && verilator --trace --exe --cc sim.cpp Top.v \
 		-CFLAGS "$$(sdl2-config --cflags)" \
 		-LDFLAGS "$$(sdl2-config --libs)" && \
 		make -C obj_dir -f VTop.mk
 
 sim: verilator
 	cd verilog/verilator/obj_dir && ./VTop -vcd ../../../$(SIM_VCD) -time $(SIM_TIME) $(subst src/main/resources/,../../../src/main/resources/,$(SIM_ARGS))
+
+sim0: 
+	$(MAKE) -C csrc all
+	make sim SIM_ARGS="-instruction ../../../csrc/fibonacci.asmbin" SIM_TIME=1000000 SIM_VCD=trace.vcd
+
+sim1:
+	$(MAKE) -C csrc all
+	$(MAKE) sim SIM_ARGS="-instruction ../../../csrc/factorial.asmbin" SIM_VCD=trace.vcd SIM_TIME=100000
+
+sim2:
+	$(MAKE) -C csrc all
+	$(MAKE) sim SIM_ARGS="-instruction ../../../csrc/bubblesort.asmbin" SIM_VCD=trace.vcd SIM_TIME=100000
 
 check-vga: verilator
 	@echo "🔄 Building nyancat binary..."

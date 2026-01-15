@@ -37,24 +37,13 @@ import riscv.Parameters
  *
  * @param entries Number of BTB entries (must be power of 2)
  */
-class BranchTargetBuffer(entries: Int = 16) extends Module {
+class BranchTargetBuffer(entries: Int = 16) extends BaseBranchPredictor(entries) {
   require(isPow2(entries), "BTB entries must be power of 2")
 
   val indexBits = log2Ceil(entries)
   val tagBits   = Parameters.AddrBits - indexBits - 2 // -2 for 4-byte alignment
 
-  val io = IO(new Bundle {
-    // Prediction interface (IF stage) - combinational lookup
-    val pc              = Input(UInt(Parameters.AddrWidth))
-    val predicted_pc    = Output(UInt(Parameters.AddrWidth))
-    val predicted_taken = Output(Bool())
-
-    // Update interface (ID stage) - registered update
-    val update_valid  = Input(Bool())
-    val update_pc     = Input(UInt(Parameters.AddrWidth))
-    val update_target = Input(UInt(Parameters.AddrWidth))
-    val update_taken  = Input(Bool()) // Whether branch was actually taken
-  })
+  // IO defined in BaseBranchPredictor
 
   // BTB entry structure
   val valid   = RegInit(VecInit(Seq.fill(entries)(false.B)))

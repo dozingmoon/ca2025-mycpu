@@ -19,6 +19,42 @@
 
 #include "VTop.h"
 #include "vga_display.h"
+#include <verilated_vcd_c.h>
+
+class VCDTracer
+{
+    VerilatedVcdC *tfp = nullptr;
+
+public:
+    void enable(std::string const &filename, VTop &top)
+    {
+        Verilated::traceEverOn(true);
+        tfp = new VerilatedVcdC;
+        top.trace(tfp, 99);
+        tfp->open(filename.c_str());
+        tfp->set_time_resolution("1ps");
+        tfp->set_time_unit("1ns");
+        if (!tfp->isOpen()) {
+            throw std::runtime_error("Failed to open VCD dump file " +
+                                     filename);
+        }
+    }
+
+    void dump(vluint64_t time)
+    {
+        if (tfp) {
+            tfp->dump(time);
+        }
+    }
+
+    ~VCDTracer()
+    {
+        if (tfp) {
+            tfp->close();
+            delete tfp;
+        }
+    }
+};
 
 static constexpr uint32_t UART_TEST_PASS = 0x0F;  // 4 subtests
 static constexpr uint32_t VGA_TEST_PASS = 0x3F;   // 6 subtests
@@ -326,7 +362,11 @@ int main(int argc, char **argv)
 {
     Verilated::commandArgs(argc, argv);
 
+    Verilated::commandArgs(argc, argv);
+
     const char *binary = nullptr;
+    const char *vcd_file = nullptr;
+    uint64_t max_cycles_arg = 0;
     bool headless = false;
     bool interactive_mode = false;
     for (int i = 1; i < argc; i++) {
@@ -337,6 +377,10 @@ int main(int argc, char **argv)
             headless = true;
         else if (!strcmp(argv[i], "--terminal") || !strcmp(argv[i], "-t"))
             interactive_mode = true;
+        else if (!strcmp(argv[i], "-vcd") && i + 1 < argc)
+             vcd_file = argv[++i];
+        else if (!strcmp(argv[i], "-time") && i + 1 < argc)
+            max_cycles_arg = std::stoull(argv[++i]);
     }
 
     auto top = std::make_unique<VTop>();
@@ -378,7 +422,16 @@ int main(int argc, char **argv)
 
     // Interactive terminal mode: no cycle limit (user exits with Ctrl-C)
     // Batch mode: 500M cycles to prevent runaway simulations
-    const uint64_t max_cycles = interactive_mode ? UINT64_MAX : 500000000;
+    // Batch mode: 500M cycles to prevent runaway simulations
+    // If -time is specified, it overrides the default.
+    uint64_t max_cycles = interactive_mode ? UINT64_MAX : 500000000;
+    if (max_cycles_arg > 0) max_cycles = max_cycles_arg;
+    
+    // Enable VCD tracing if requested
+    auto vcd_tracer = std::make_unique<VCDTracer>();
+    if (vcd_file) {
+        vcd_tracer->enable(vcd_file, *top);
+    }
     uint64_t cycle = 0, last_report = 0, frames = 0;
     uint32_t vga_div = 0;
     bool prev_vsync = false, first_vsync = true;
@@ -435,6 +488,9 @@ int main(int argc, char **argv)
         // This creates a stable snapshot of all DUT outputs for this clock
         // edge.
         top->eval();
+        
+        // Dump VCD trace if enabled
+        if (vcd_file) vcd_tracer->dump(cycle);
 
         // =====================================================================
         // CAPTURE PHASE: Snapshot all DUT outputs immediately after eval().
