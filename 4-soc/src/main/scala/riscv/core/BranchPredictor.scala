@@ -78,60 +78,88 @@ class GSharePredictor(entries: Int = 16, historyLength: Int = 8) extends BaseBra
   val indexBits = log2Ceil(entries)
   val tagBits   = Parameters.AddrBits - indexBits - 2 // -2 for 4-byte alignment
 
-  // BTB entry structure
-  val valid   = RegInit(VecInit(Seq.fill(entries)(false.B)))
-  val tags    = Reg(Vec(entries, UInt(tagBits.W)))
-  val targets = Reg(Vec(entries, UInt(Parameters.AddrBits.W)))
+  // ============================================================
+  // Separate PHT (Pattern History Table) - for direction prediction
+  // PHT is tagless - uses GShare index (PC XOR history)
+  // ============================================================
+  val pht = RegInit(VecInit(Seq.fill(entries)(1.U(2.W)))) // Initialize to Weakly Not-Taken
 
-  // 2-bit saturating counters for direction prediction
-  val counters = RegInit(VecInit(Seq.fill(entries)(2.U(2.W)))) // Initialize to Weakly Taken
+  // ============================================================
+  // Separate BTB (Branch Target Buffer) - for target storage
+  // BTB uses direct PC index with tags
+  // ============================================================
+  val btb_valid   = RegInit(VecInit(Seq.fill(entries)(false.B)))
+  val btb_tags    = Reg(Vec(entries, UInt(tagBits.W)))
+  val btb_targets = Reg(Vec(entries, UInt(Parameters.AddrBits.W)))
 
   // Global History Register
   val history = RegInit(0.U(historyLength.W))
 
-  // Helpers
-  def getTag(pc: UInt): UInt = pc(Parameters.AddrBits - 1, indexBits + 2)
-
-  // Prediction logic
-  val pred_index = BranchPredictor.gshareIndex(io.pc, history, historyLength, indexBits)
-  val pred_tag   = getTag(io.pc)
-  val hit        = valid(pred_index) && (tags(pred_index) === pred_tag)
+  // ============================================================
+  // Helper functions
+  // ============================================================
+  def getBtbIndex(pc: UInt): UInt = pc(indexBits + 1, 2)
+  def getBtbTag(pc: UInt): UInt = pc(Parameters.AddrBits - 1, indexBits + 2)
   
-  // Predict taken if hit AND counter >= 2
-  val predict_taken = hit && (counters(pred_index) >= 2.U)
+  // GShare index: XOR PC bits with folded history
+  def getPhtIndex(pc: UInt, hist: UInt): UInt = {
+    val pcBits = pc(indexBits + 1, 2)
+    // Use full history, fold if necessary
+    val histBits = if (historyLength >= indexBits) {
+      BranchPredictor.foldHistory(hist, historyLength, indexBits)
+    } else {
+      // Pad history if shorter than index
+      Cat(0.U((indexBits - historyLength).W), hist)
+    }
+    pcBits ^ histBits
+  }
+
+  // ============================================================
+  // Prediction Logic (combinational)
+  // ============================================================
+  
+  // PHT lookup for direction (tagless)
+  val pred_pht_index = getPhtIndex(io.pc, history)
+  val pred_direction = pht(pred_pht_index) >= 2.U  // Taken if counter >= 2
+  
+  // BTB lookup for target (tagged)
+  val pred_btb_index = getBtbIndex(io.pc)
+  val pred_btb_tag   = getBtbTag(io.pc)
+  val btb_hit        = btb_valid(pred_btb_index) && (btb_tags(pred_btb_index) === pred_btb_tag)
+  val btb_target     = btb_targets(pred_btb_index)
+  
+  // Final prediction: predict taken if PHT says taken AND BTB has a valid target
+  val predict_taken = pred_direction && btb_hit
   io.predicted_taken := predict_taken
-  io.predicted_pc    := Mux(predict_taken, targets(pred_index), io.pc + 4.U)
+  io.predicted_pc    := Mux(predict_taken, btb_target, io.pc + 4.U)
 
-  // Debug: Print every cycle where prediction is happening (or just always)
-  // printf(p"GShare: PC=%x Hist=%x Index=%x Pred=%d\n", io.pc, history, pred_index, predict_taken)
-
-  // Update logic
+  // ============================================================
+  // Update Logic (registered)
+  // ============================================================
   when(io.update_valid) {
-      // printf(p"GShare Update: PC=${Hexadecimal(io.update_pc)} Taken=${io.update_taken} Hist=${Hexadecimal(history)}\n")
-    // Update global history
+    // Update global history (shift in new outcome)
     history := Cat(history(historyLength - 2, 0), io.update_taken)
 
-    val upd_index = BranchPredictor.gshareIndex(io.update_pc, history, historyLength, indexBits)
-    val upd_tag   = getTag(io.update_pc)
-    val entry_hit = valid(upd_index) && (tags(upd_index) === upd_tag)
-
+    // Update PHT (direction predictor) - always update, tagless
+    val upd_pht_index = getPhtIndex(io.update_pc, history)
     when(io.update_taken) {
-      valid(upd_index)   := true.B
-      tags(upd_index)    := upd_tag
-      targets(upd_index) := io.update_target
-      when(entry_hit) {
-        counters(upd_index) := Mux(counters(upd_index) === 3.U, 3.U, counters(upd_index) + 1.U)
-      }.otherwise {
-        counters(upd_index) := 2.U
-      }
+      // Increment counter (saturate at 3)
+      pht(upd_pht_index) := Mux(pht(upd_pht_index) === 3.U, 3.U, pht(upd_pht_index) + 1.U)
     }.otherwise {
-      when(entry_hit) {
-        when(counters(upd_index) === 1.U) {
-          valid(upd_index) := false.B
-        }.elsewhen(counters(upd_index) > 1.U) {
-          counters(upd_index) := counters(upd_index) - 1.U
-        }
-      }
+      // Decrement counter (saturate at 0)
+      pht(upd_pht_index) := Mux(pht(upd_pht_index) === 0.U, 0.U, pht(upd_pht_index) - 1.U)
     }
+
+    // Update BTB (target buffer) - only on taken branches
+    val upd_btb_index = getBtbIndex(io.update_pc)
+    val upd_btb_tag   = getBtbTag(io.update_pc)
+    
+    when(io.update_taken) {
+      btb_valid(upd_btb_index)   := true.B
+      btb_tags(upd_btb_index)    := upd_btb_tag
+      btb_targets(upd_btb_index) := io.update_target
+    }
+    // Note: We don't invalidate BTB on not-taken - targets rarely change
   }
 }
+

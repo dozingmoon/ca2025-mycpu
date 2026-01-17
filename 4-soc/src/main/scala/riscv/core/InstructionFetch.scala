@@ -117,7 +117,8 @@ class InstructionFetch extends Module {
 
   // Branch Target Buffer / Predictor
   // Select implementation: Simple BTB or GShare
-  val useGShare = true // Set to true to use GShare, false for original BTB
+  // Using 32-entry table for more realistic comparison
+  val useGShare = false // Set to true to use GShare, false for original BTB
   val btb = if (useGShare) {
     Module(new GSharePredictor(entries = 32, historyLength = 8))
   } else {

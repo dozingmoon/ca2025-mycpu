@@ -38,6 +38,14 @@ sim2:
 	$(MAKE) -C csrc all
 	$(MAKE) sim SIM_ARGS="-instruction ../../../csrc/bubblesort.asmbin" SIM_VCD=trace.vcd SIM_TIME=100000
 
+sim3:
+	$(MAKE) -C csrc all
+	$(MAKE) sim SIM_ARGS="-instruction ../../../csrc/aliasing.asmbin" SIM_VCD=trace.vcd SIM_TIME=500000
+
+sim4:
+	$(MAKE) -C csrc all
+	$(MAKE) sim SIM_ARGS="-instruction ../../../csrc/complex.asmbin" SIM_VCD=trace.vcd SIM_TIME=2000000
+
 check-vga: verilator
 	@echo "🔄 Building nyancat binary..."
 	@$(MAKE) -C csrc nyancat.asmbin >/dev/null

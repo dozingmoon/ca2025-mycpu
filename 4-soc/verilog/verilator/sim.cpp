@@ -8,6 +8,7 @@
 #include <cstring>
 #include <fstream>
 #include <iostream>
+#include <iomanip>
 #include <memory>
 #include <queue>
 #include <vector>
@@ -673,6 +674,25 @@ int main(int argc, char **argv)
         std::cout << ", " << frames << " frames";
     std::cout << "\nFinal PC: 0x" << std::hex << top->io_instruction_address
               << std::dec << "\n";
+
+    // Branch prediction statistics
+    // Read CSRs: mhpmcounter3 (0xB03) = mispredictions, mhpmcounter8 (0xB08) = total branches
+    top->io_cpu_csr_debug_read_address = 0xB03;
+    top->eval();
+    uint32_t mispredictions = top->io_cpu_csr_debug_read_data;
+    
+    top->io_cpu_csr_debug_read_address = 0xB08;
+    top->eval();
+    uint32_t total_branches = top->io_cpu_csr_debug_read_data;
+    
+    if (total_branches > 0) {
+        double mispredict_rate = 100.0 * mispredictions / total_branches;
+        std::cout << "\nBranch Prediction:\n";
+        std::cout << "  Total branches: " << total_branches << "\n";
+        std::cout << "  Mispredictions: " << mispredictions << "\n";
+        std::cout << "  Misprediction rate: " << std::fixed << std::setprecision(2) 
+                  << mispredict_rate << "%\n";
+    }
 
     // Print VGA color diagnostics (only if VGA was used)
     if (vga_initialized) {
