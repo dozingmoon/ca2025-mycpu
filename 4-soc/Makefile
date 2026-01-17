@@ -28,11 +28,11 @@ sim: verilator
 
 sim_fib: 
 	$(MAKE) -C csrc all
-	make sim SIM_ARGS="-instruction ../../../csrc/fibonacci.asmbin" SIM_TIME=1000000 SIM_VCD=trace.vcd
+	make sim SIM_ARGS="-instruction ../../../csrc/fibonacci.asmbin" SIM_TIME=10000000 SIM_VCD=trace.vcd
 
 sim_bub:
 	$(MAKE) -C csrc all
-	$(MAKE) sim SIM_ARGS="-instruction ../../../csrc/bubblesort.asmbin" SIM_VCD=trace.vcd SIM_TIME=100000
+	make sim SIM_ARGS="-instruction ../../../csrc/bubblesort.asmbin" SIM_VCD=trace.vcd SIM_TIME=1000000
 
 check-vga: verilator
 	@echo "🔄 Building nyancat binary..."

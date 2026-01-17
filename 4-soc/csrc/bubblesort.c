@@ -2,9 +2,9 @@
 // MyCPU is freely redistributable under the MIT License. See the file
 // "LICENSE" for information on usage and redistribution of this file.
 
-#define SIZE 10
+#define SIZE 100
 
-int data[SIZE] = {5, 9, 2, 6, 1, 8, 4, 7, 0, 3};
+#include "bubblesort_data.h"
 
 void bubblesort(int *arr, int n)
 {

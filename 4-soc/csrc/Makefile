@@ -13,7 +13,7 @@ OBJCOPY := $(CROSS_COMPILE)objcopy
 OBJDUMP := $(CROSS_COMPILE)objdump
 
 # Program targets (add new programs here)
-PROGRAMS := nyancat uart shell factorial fibonacci bubblesort aliasing complex pattern
+PROGRAMS := nyancat uart shell fibonacci bubblesort
 BINARIES := $(PROGRAMS:%=%.asmbin)
 DUMPS := $(PROGRAMS:%=%.dump)
 
@@ -43,29 +43,18 @@ shell.elf: shell.c mmio.h init.o link.lds
 	$(CC) $(CFLAGS) -c -o shell.o shell.c
 	$(CROSS_COMPILE)ld -o shell.elf -T link.lds $(LDFLAGS) shell.o init.o
 
-factorial.elf: factorial.c mmio.h init.o link.lds
-	$(CC) $(CFLAGS) -c -o factorial.o factorial.c
-	$(CROSS_COMPILE)ld -o factorial.elf -T link.lds $(LDFLAGS) factorial.o init.o
-
 fibonacci.elf: fibonacci.c mmio.h init.o link.lds
 	$(CC) $(CFLAGS) -c -o fibonacci.o fibonacci.c
 	$(CROSS_COMPILE)ld -o fibonacci.elf -T link.lds $(LDFLAGS) fibonacci.o init.o
 
-bubblesort.elf: bubblesort.c mmio.h init.o link.lds
+bubblesort_data.h: bubblesort.dat
+	python3 -c 'import sys; print("int data[] = {" + ",".join(sys.stdin.read().split()) + "};")' < $< > $@
+
+bubblesort.o: bubblesort.c bubblesort_data.h
+
+bubblesort.elf: bubblesort.c bubblesort_data.h mmio.h init.o link.lds
 	$(CC) $(CFLAGS) -c -o bubblesort.o bubblesort.c
 	$(CROSS_COMPILE)ld -o bubblesort.elf -T link.lds $(LDFLAGS) bubblesort.o init.o
-
-aliasing.elf: aliasing.c init.o link.lds
-	$(CC) $(CFLAGS) -c -o aliasing.o aliasing.c
-	$(CROSS_COMPILE)ld -o aliasing.elf -T link.lds $(LDFLAGS) aliasing.o init.o
-
-complex.elf: complex.c init.o link.lds
-	$(CC) $(CFLAGS) -c -o complex.o complex.c
-	$(CROSS_COMPILE)ld -o complex.elf -T link.lds $(LDFLAGS) complex.o init.o
-
-pattern.elf: pattern.c mmio.h init.o link.lds
-	$(CC) $(CFLAGS) -c -o pattern.o pattern.c
-	$(CROSS_COMPILE)ld -o pattern.elf -T link.lds $(LDFLAGS) pattern.o init.o
 
 init.o: init.S
 	$(AS) -R $(ASFLAGS) -o $@ $<
