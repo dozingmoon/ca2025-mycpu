@@ -8,6 +8,7 @@ import chisel3._
 import chiseltest._
 import org.scalatest.flatspec.AnyFlatSpec
 import riscv.core.BranchTargetBuffer
+import riscv.core.BimodalPredictor
 import riscv.core.ReturnAddressStack
 
 class BranchTargetBufferTest extends AnyFlatSpec with ChiselScalatestTester {
@@ -15,17 +16,17 @@ class BranchTargetBufferTest extends AnyFlatSpec with ChiselScalatestTester {
 
   it should "not predict taken on empty BTB (cold miss)" in {
     test(new BranchTargetBuffer(16)).withAnnotations(TestAnnotations.annos) { dut =>
-      // Query an address - BTB is empty, should not predict taken
+      // Query an address - BTB is empty, should not predict taken (no hit)
       dut.io.pc.poke(0x1000.U)
       dut.io.update_valid.poke(false.B)
 
       dut.io.predicted_taken.expect(false.B)
-      // predicted_pc should be pc+4 when not predicting taken
+      // predicted_pc should be pc+4 when no hit
       dut.io.predicted_pc.expect(0x1004.U)
     }
   }
 
-  it should "predict taken after a branch is taken and recorded" in {
+  it should "predict taken (hit) after a branch is taken and recorded" in {
     test(new BranchTargetBuffer(16)).withAnnotations(TestAnnotations.annos) { dut =>
       val branchPC = 0x1000L
       val targetPC = 0x2000L
@@ -38,7 +39,7 @@ class BranchTargetBufferTest extends AnyFlatSpec with ChiselScalatestTester {
       dut.clock.step()
       dut.io.update_valid.poke(false.B)
 
-      // Query same PC - should hit and predict taken (counter initialized to 2 = WT)
+      // Query same PC - should hit (predicted_taken = hit)
       dut.io.pc.poke(branchPC.U)
       dut.clock.step()
 
@@ -59,14 +60,13 @@ class BranchTargetBufferTest extends AnyFlatSpec with ChiselScalatestTester {
       dut.io.update_taken.poke(true.B)
       dut.clock.step()
 
-      // Now record it as not-taken 3 times (counter: 2 -> 1 -> 0 -> 0)
+      // Now record it as not-taken 3 times (counter: 2 -> 1 -> invalid)
       dut.io.update_taken.poke(false.B)
-      dut.clock.step()
-      dut.clock.step()
-      dut.clock.step()
+      dut.clock.step() // 2 -> 1
+      dut.clock.step() // 1 -> invalid
       dut.io.update_valid.poke(false.B)
 
-      // Query - should not predict taken (counter < 2)
+      // Query - should not predict taken (entry invalidated)
       dut.io.pc.poke(branchPC.U)
       dut.clock.step()
 
@@ -174,6 +174,95 @@ class BranchTargetBufferTest extends AnyFlatSpec with ChiselScalatestTester {
       dut.clock.step()
       dut.io.predicted_taken.expect(true.B)
       dut.io.predicted_pc.expect(target2.U)
+    }
+  }
+}
+
+class BimodalPredictorTest extends AnyFlatSpec with ChiselScalatestTester {
+  behavior.of("Bimodal Predictor")
+
+  it should "predict taken initially (counter initialized to Weakly Taken = 2)" in {
+    test(new BimodalPredictor(16)).withAnnotations(TestAnnotations.annos) { dut =>
+      // Query an address - counter starts at 2 (WT), should predict taken
+      dut.io.pc.poke(0x1000.U)
+      dut.io.update_valid.poke(false.B)
+
+      dut.io.predicted_taken.expect(true.B)
+    }
+  }
+
+  it should "not predict taken when counter falls below threshold" in {
+    test(new BimodalPredictor(16)).withAnnotations(TestAnnotations.annos) { dut =>
+      val branchPC = 0x1000L
+
+      // Counter starts at 2. Update as not-taken 3 times (2 -> 1 -> 0 -> 0)
+      dut.io.pc.poke(branchPC.U)
+      dut.io.update_valid.poke(true.B)
+      dut.io.update_pc.poke(branchPC.U)
+      dut.io.update_taken.poke(false.B)
+      dut.clock.step() // 2 -> 1
+      dut.clock.step() // 1 -> 0
+      dut.clock.step() // 0 -> 0 (saturate)
+      dut.io.update_valid.poke(false.B)
+
+      // Query - should not predict taken (counter < 2)
+      dut.clock.step()
+
+      dut.io.predicted_taken.expect(false.B)
+    }
+  }
+
+  it should "saturate counter at maximum (3) on repeated taken" in {
+    test(new BimodalPredictor(16)).withAnnotations(TestAnnotations.annos) { dut =>
+      val branchPC = 0x1000L
+
+      // Update taken 5 times (counter: 2 -> 3 -> 3 -> 3 -> 3 -> 3)
+      dut.io.pc.poke(branchPC.U)
+      for (_ <- 0 until 5) {
+        dut.io.update_valid.poke(true.B)
+        dut.io.update_pc.poke(branchPC.U)
+        dut.io.update_taken.poke(true.B)
+        dut.clock.step()
+      }
+      dut.io.update_valid.poke(false.B)
+
+      // Still predicts taken
+      dut.io.predicted_taken.expect(true.B)
+
+      // One not-taken should not flip prediction (counter 3 -> 2, still >= 2)
+      dut.io.update_valid.poke(true.B)
+      dut.io.update_taken.poke(false.B)
+      dut.clock.step()
+      dut.io.update_valid.poke(false.B)
+
+      dut.io.predicted_taken.expect(true.B)
+    }
+  }
+
+  it should "saturate counter at minimum (0) on repeated not-taken" in {
+    test(new BimodalPredictor(16)).withAnnotations(TestAnnotations.annos) { dut =>
+      val branchPC = 0x1000L
+
+      // Update not-taken 5 times (counter: 2 -> 1 -> 0 -> 0 -> 0 -> 0)
+      dut.io.pc.poke(branchPC.U)
+      for (_ <- 0 until 5) {
+        dut.io.update_valid.poke(true.B)
+        dut.io.update_pc.poke(branchPC.U)
+        dut.io.update_taken.poke(false.B)
+        dut.clock.step()
+      }
+      dut.io.update_valid.poke(false.B)
+
+      // Does not predict taken
+      dut.io.predicted_taken.expect(false.B)
+
+      // One taken should not flip prediction (counter 0 -> 1, still < 2)
+      dut.io.update_valid.poke(true.B)
+      dut.io.update_taken.poke(true.B)
+      dut.clock.step()
+      dut.io.update_valid.poke(false.B)
+
+      dut.io.predicted_taken.expect(false.B)
     }
   }
 }
