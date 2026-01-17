@@ -19,7 +19,7 @@ object ProgramCounter {
  * branch prediction using two complementary predictors:
  *
  * Branch Target Buffer (BTB):
- * - 32-entry direct-mapped cache indexed by PC[6:2]
+ * - 16-entry direct-mapped cache indexed by PC[5:2]
  * - Stores branch/jump targets with 2-bit saturating counters
  * - Predicts taken when: BTB hit AND counter >= 2 (weakly/strongly taken)
  * - Updated in ID stage when branches resolve
