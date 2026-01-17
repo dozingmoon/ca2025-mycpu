@@ -119,16 +119,32 @@ class InstructionFetch extends Module {
   // Select implementation: Simple BTB or GShare
   // controlled by Make argument GSHARE (passed as -DuseGShare=true/false)
   val useGShare = sys.props.getOrElse("useGShare", "true").toBoolean
-  val btb = if (useGShare) {
+
+  // Instantiate Shared BTB (Target Storage)
+  val btb = Module(new BranchTargetBuffer(entries = 16))
+  btb.io.pc := pc
+  btb.io.update_valid  := io.btb_update_valid
+  btb.io.update_pc     := io.btb_update_pc
+  btb.io.update_target := io.btb_update_target
+  btb.io.update_taken  := io.btb_update_taken
+
+  // Instantiate Direction Predictor
+  val predictor = if (useGShare) {
     Module(new GSharePredictor(entries = 16, historyLength = 36, phtIndexBits = 6))
   } else {
-    Module(new BranchTargetBuffer(entries = 16))
+    Module(new BimodalPredictor(entries = 16))
   }
-  btb.io.pc := pc
+  predictor.io.pc := pc
+  predictor.io.update_valid  := io.btb_update_valid
+  predictor.io.update_pc     := io.btb_update_pc
+  predictor.io.update_target := io.btb_update_target
+  predictor.io.update_taken  := io.btb_update_taken
 
-  // BTB prediction: use predicted target if BTB predicts taken
-  val btb_next_pc = btb.io.predicted_pc
-  io.btb_predicted_taken  := btb.io.predicted_taken
+  // Combine Predictions:
+  // Predict Taken = Predictor says Taken AND BTB has a valid target
+  val pred_taken = predictor.io.predicted_taken && btb.io.predicted_taken
+
+  io.btb_predicted_taken  := pred_taken
   io.btb_predicted_target := btb.io.predicted_pc
 
   // Return Address Stack for JALR return prediction
@@ -219,7 +235,7 @@ class InstructionFetch extends Module {
     Mux(
       ibtb_prediction_hit,
       ibtb.io.predicted_target,                          // IndirectBTB prediction for non-return JALR
-      Mux(btb.io.predicted_taken, btb_next_pc, pc + 4.U) // BTB prediction or sequential
+      Mux(pred_taken, btb.io.predicted_pc, pc + 4.U) // BTB prediction or sequential
     )
   )
 
