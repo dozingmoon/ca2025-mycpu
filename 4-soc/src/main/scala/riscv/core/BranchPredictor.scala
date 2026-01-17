@@ -72,14 +72,15 @@ abstract class BaseBranchPredictor(entries: Int) extends Module {
   val io = IO(new BranchPredictorIO)
 }
 
-class GSharePredictor(entries: Int = 16, historyLength: Int = 8) extends BaseBranchPredictor(entries) {
+class GSharePredictor(entries: Int = 16, historyLength: Int = 8, phtIndexBits: Int = 4) extends BaseBranchPredictor(entries) {
   require(isPow2(entries), "GShare entries must be power of 2")
 
   val indexBits = log2Ceil(entries)
   val tagBits   = Parameters.AddrBits - indexBits - 2 // -2 for 4-byte alignment
 
   // PHT (Pattern History Table)
-  val pht = RegInit(VecInit(Seq.fill(entries)(1.U(2.W)))) // Initialize to Weakly Not-Taken
+  val phtEntries = 1 << phtIndexBits
+  val pht = RegInit(VecInit(Seq.fill(phtEntries)(1.U(2.W)))) // Initialize to Weakly Not-Taken
 
   // BTB (Branch Target Buffer) - for target storage
   val btb_valid   = RegInit(VecInit(Seq.fill(entries)(false.B)))
@@ -95,13 +96,13 @@ class GSharePredictor(entries: Int = 16, historyLength: Int = 8) extends BaseBra
   
   // GShare index: XOR PC bits with folded history
   def getPhtIndex(pc: UInt, hist: UInt): UInt = {
-    val pcBits = pc(indexBits + 1, 2)
+    val pcBits = pc(phtIndexBits + 1, 2)
     // Use full history, fold if necessary
-    val histBits = if (historyLength >= indexBits) {
-      BranchPredictor.foldHistory(hist, historyLength, indexBits)
+    val histBits = if (historyLength >= phtIndexBits) {
+      BranchPredictor.foldHistory(hist, historyLength, phtIndexBits)
     } else {
       // Pad history if shorter than index
-      Cat(0.U((indexBits - historyLength).W), hist)
+      Cat(0.U((phtIndexBits - historyLength).W), hist)
     }
     pcBits ^ histBits
   }

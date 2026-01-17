@@ -117,12 +117,12 @@ class InstructionFetch extends Module {
 
   // Branch Target Buffer / Predictor
   // Select implementation: Simple BTB or GShare
-  // Using 32-entry table for more realistic comparison
-  val useGShare = false // Set to true to use GShare, false for original BTB
+  // controlled by Make argument GSHARE (passed as -DuseGShare=true/false)
+  val useGShare = sys.props.getOrElse("useGShare", "true").toBoolean
   val btb = if (useGShare) {
-    Module(new GSharePredictor(entries = 32, historyLength = 8))
+    Module(new GSharePredictor(entries = 16, historyLength = 36, phtIndexBits = 6))
   } else {
-    Module(new BranchTargetBuffer(entries = 32))
+    Module(new BranchTargetBuffer(entries = 16))
   }
   btb.io.pc := pc
 

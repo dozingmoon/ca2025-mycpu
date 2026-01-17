@@ -5,12 +5,20 @@
 # Include common build utilities
 include ../common/build.mk
 
+# Default GShare enabled (1). Override with make GSHARE=0
+GSHARE ?= 1
+ifeq ($(GSHARE),1)
+	SBT_ARGS := -DuseGShare=true
+else
+	SBT_ARGS := -DuseGShare=false
+endif
+
 test:
-	cd .. && sbt "project soc" test
+	cd .. && sbt $(SBT_ARGS) "project soc" test
 
 verilator:
 	@if java -version >/dev/null 2>&1; then \
-		cd .. && PATH=$$HOME/.local/bin:$$PATH sbt "project soc" "runMain board.verilator.VerilogGenerator"; \
+		cd .. && PATH=$$HOME/.local/bin:$$PATH sbt $(SBT_ARGS) "project soc" "runMain board.verilator.VerilogGenerator"; \
 	else \
 		echo "⚠️  Java runtime not found; using existing generated Verilog in verilog/verilator"; \
 		if [ ! -f verilog/verilator/Top.v ]; then \
