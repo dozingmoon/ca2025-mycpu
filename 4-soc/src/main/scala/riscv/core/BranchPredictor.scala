@@ -78,16 +78,10 @@ class GSharePredictor(entries: Int = 16, historyLength: Int = 8) extends BaseBra
   val indexBits = log2Ceil(entries)
   val tagBits   = Parameters.AddrBits - indexBits - 2 // -2 for 4-byte alignment
 
-  // ============================================================
-  // Separate PHT (Pattern History Table) - for direction prediction
-  // PHT is tagless - uses GShare index (PC XOR history)
-  // ============================================================
+  // PHT (Pattern History Table)
   val pht = RegInit(VecInit(Seq.fill(entries)(1.U(2.W)))) // Initialize to Weakly Not-Taken
 
-  // ============================================================
-  // Separate BTB (Branch Target Buffer) - for target storage
-  // BTB uses direct PC index with tags
-  // ============================================================
+  // BTB (Branch Target Buffer) - for target storage
   val btb_valid   = RegInit(VecInit(Seq.fill(entries)(false.B)))
   val btb_tags    = Reg(Vec(entries, UInt(tagBits.W)))
   val btb_targets = Reg(Vec(entries, UInt(Parameters.AddrBits.W)))
@@ -95,9 +89,7 @@ class GSharePredictor(entries: Int = 16, historyLength: Int = 8) extends BaseBra
   // Global History Register
   val history = RegInit(0.U(historyLength.W))
 
-  // ============================================================
   // Helper functions
-  // ============================================================
   def getBtbIndex(pc: UInt): UInt = pc(indexBits + 1, 2)
   def getBtbTag(pc: UInt): UInt = pc(Parameters.AddrBits - 1, indexBits + 2)
   
@@ -114,9 +106,7 @@ class GSharePredictor(entries: Int = 16, historyLength: Int = 8) extends BaseBra
     pcBits ^ histBits
   }
 
-  // ============================================================
-  // Prediction Logic (combinational)
-  // ============================================================
+  // Prediction Logic
   
   // PHT lookup for direction (tagless)
   val pred_pht_index = getPhtIndex(io.pc, history)
@@ -133,9 +123,7 @@ class GSharePredictor(entries: Int = 16, historyLength: Int = 8) extends BaseBra
   io.predicted_taken := predict_taken
   io.predicted_pc    := Mux(predict_taken, btb_target, io.pc + 4.U)
 
-  // ============================================================
-  // Update Logic (registered)
-  // ============================================================
+  // Update Logic
   when(io.update_valid) {
     // Update global history (shift in new outcome)
     history := Cat(history(historyLength - 2, 0), io.update_taken)

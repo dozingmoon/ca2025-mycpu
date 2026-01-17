@@ -13,7 +13,7 @@ OBJCOPY := $(CROSS_COMPILE)objcopy
 OBJDUMP := $(CROSS_COMPILE)objdump
 
 # Program targets (add new programs here)
-PROGRAMS := nyancat uart shell factorial fibonacci bubblesort aliasing complex
+PROGRAMS := nyancat uart shell factorial fibonacci bubblesort aliasing complex pattern
 BINARIES := $(PROGRAMS:%=%.asmbin)
 DUMPS := $(PROGRAMS:%=%.dump)
 
@@ -62,6 +62,10 @@ aliasing.elf: aliasing.c init.o link.lds
 complex.elf: complex.c init.o link.lds
 	$(CC) $(CFLAGS) -c -o complex.o complex.c
 	$(CROSS_COMPILE)ld -o complex.elf -T link.lds $(LDFLAGS) complex.o init.o
+
+pattern.elf: pattern.c mmio.h init.o link.lds
+	$(CC) $(CFLAGS) -c -o pattern.o pattern.c
+	$(CROSS_COMPILE)ld -o pattern.elf -T link.lds $(LDFLAGS) pattern.o init.o
 
 init.o: init.S
 	$(AS) -R $(ASFLAGS) -o $@ $<

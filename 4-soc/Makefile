@@ -26,25 +26,13 @@ verilator:
 sim: verilator
 	cd verilog/verilator/obj_dir && ./VTop -vcd ../../../$(SIM_VCD) -time $(SIM_TIME) $(subst src/main/resources/,../../../src/main/resources/,$(SIM_ARGS))
 
-sim0: 
+sim_fib: 
 	$(MAKE) -C csrc all
 	make sim SIM_ARGS="-instruction ../../../csrc/fibonacci.asmbin" SIM_TIME=1000000 SIM_VCD=trace.vcd
 
-sim1:
-	$(MAKE) -C csrc all
-	$(MAKE) sim SIM_ARGS="-instruction ../../../csrc/factorial.asmbin" SIM_VCD=trace.vcd SIM_TIME=100000
-
-sim2:
+sim_bub:
 	$(MAKE) -C csrc all
 	$(MAKE) sim SIM_ARGS="-instruction ../../../csrc/bubblesort.asmbin" SIM_VCD=trace.vcd SIM_TIME=100000
-
-sim3:
-	$(MAKE) -C csrc all
-	$(MAKE) sim SIM_ARGS="-instruction ../../../csrc/aliasing.asmbin" SIM_VCD=trace.vcd SIM_TIME=500000
-
-sim4:
-	$(MAKE) -C csrc all
-	$(MAKE) sim SIM_ARGS="-instruction ../../../csrc/complex.asmbin" SIM_VCD=trace.vcd SIM_TIME=2000000
 
 check-vga: verilator
 	@echo "🔄 Building nyancat binary..."
