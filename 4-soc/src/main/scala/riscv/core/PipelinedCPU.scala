@@ -411,6 +411,7 @@ class PipelinedCPU extends Module {
   id2ex.io.memory_read_enable     := id.io.ex_memory_read_enable
   id2ex.io.memory_write_enable    := id.io.ex_memory_write_enable
   id2ex.io.csr_read_data          := csr_regs.io.id_reg_read_data
+  id2ex.io.instruction_valid      := if2id.io.output_instruction_valid
 
   ex.io.instruction         := id2ex.io.output_instruction
   ex.io.instruction_address := id2ex.io.output_instruction_address
@@ -436,6 +437,7 @@ class PipelinedCPU extends Module {
   ex2mem.io.memory_write_enable := id2ex.io.output_memory_write_enable
   ex2mem.io.alu_result          := ex.io.mem_alu_result
   ex2mem.io.csr_read_data       := id2ex.io.output_csr_read_data
+  ex2mem.io.instruction_valid   := id2ex.io.output_instruction_valid
 
   mem.io.alu_result          := ex2mem.io.output_alu_result
   mem.io.reg2_data           := ex2mem.io.output_reg2_data
@@ -464,6 +466,7 @@ class PipelinedCPU extends Module {
   mem2wb.io.regs_write_address := mem.io.wb_regs_write_address
   mem2wb.io.memory_read_data   := mem.io.wb_memory_read_data
   mem2wb.io.csr_read_data      := ex2mem.io.output_csr_read_data
+  mem2wb.io.instruction_valid  := ex2mem.io.output_instruction_valid
 
   wb.io.instruction_address := mem2wb.io.output_instruction_address
   wb.io.alu_result          := mem2wb.io.output_alu_result
@@ -515,13 +518,10 @@ class PipelinedCPU extends Module {
   // Branch instructions that don't write registers are counted when they set if_jump_flag
   // and successfully update PC (they implicitly complete when they resolve in ID stage).
   //
-  // For now, we use a simpler but slightly imprecise metric:
-  // - Count register-writing instructions in WB
-  // - Count stores when they complete (write_data_accepted)
-  // This may undercount branches that don't write registers, but matches typical CPI analysis.
-  val wb_instruction_valid = mem2wb.io.output_regs_write_enable
-  val store_completed      = mem.io.bus.write && mem.io.bus.write_valid // Store completes
-  csr_regs.io.instruction_retired := (wb_instruction_valid || store_completed) && !mem_stall
+  // New precise instruction counting using the valid bit propagated through pipeline
+  // This counts all instructions that reach WB stage, including branches/jumps that don't write registers.
+  // Flushed instructions (bubbles) have valid=0, so they are not counted.
+  csr_regs.io.instruction_retired := mem2wb.io.output_instruction_valid && !mem_stall
 
   // Branch misprediction: BTB, RAS, or IndirectBTB predicted wrong
   // Gate with !mem_stall to ensure single-cycle pulse.

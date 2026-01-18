@@ -47,25 +47,24 @@ class BranchTargetBuffer(entries: Int = 16) extends BaseBranchPredictor(entries)
   val pred_tag   = getTag(io.pc)
   val hit        = valid(pred_index) && (tags(pred_index) === pred_tag)
 
+  // BTB hit signals "we know this branch" - direction predictor decides taken/not-taken
   io.predicted_taken := hit
   io.predicted_pc    := Mux(hit, targets(pred_index), io.pc + 4.U)
 
   // Update logic (registered - takes effect next cycle)
+  // IMPORTANT: Always allocate entry for branches, regardless of taken/not-taken.
+  // This allows the direction predictor (BimodalPredictor/GSharePredictor) to make
+  // the taken/not-taken decision while BTB provides the target.
   when(io.update_valid) {
     val upd_index = getIndex(io.update_pc)
     val upd_tag   = getTag(io.update_pc)
 
-    when(io.update_taken) {
-      // Branch taken: update/allocate entry with target
-      valid(upd_index)   := true.B
-      tags(upd_index)    := upd_tag
-      targets(upd_index) := io.update_target
-    }.otherwise {
-      // Branch not taken: invalidate entry if it matches (reduce mispredictions)
-      when(valid(upd_index) && (tags(upd_index) === upd_tag)) {
-        valid(upd_index) := false.B
-      }
-    }
+    // Always update/allocate entry with target when branch resolves
+    // Even for not-taken branches, store the target so future taken predictions
+    // can use it immediately without a cold miss
+    valid(upd_index)   := true.B
+    tags(upd_index)    := upd_tag
+    targets(upd_index) := io.update_target
   }
 }
 

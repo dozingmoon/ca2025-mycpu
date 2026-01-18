@@ -45,6 +45,7 @@ class IF2ID extends Module {
     val output_ras_predicted_target  = Output(UInt(Parameters.AddrWidth)) // RAS target to ID stage
     val output_ibtb_predicted_valid  = Output(Bool())                     // IndirectBTB prediction to ID
     val output_ibtb_predicted_target = Output(UInt(Parameters.AddrWidth)) // IndirectBTB target to ID
+    val output_instruction_valid     = Output(Bool())                     // Instruction valid (not a bubble)
   })
 
   val instruction = Module(new PipelineRegister(defaultValue = InstructionsNop.nop))
@@ -58,6 +59,15 @@ class IF2ID extends Module {
   instruction_address.io.stall  := io.stall
   instruction_address.io.flush  := io.flush
   io.output_instruction_address := instruction_address.io.out
+
+  // Instruction valid bit
+  // Initialized to false, set to true when a valid instruction enters the pipeline
+  // Flushes (branch mispredicts) will reset this to false (bubble)
+  val instruction_valid = Module(new PipelineRegister(1))
+  instruction_valid.io.in     := true.B // Always input valid unless flushed externally (which we don't have here)
+  instruction_valid.io.stall  := io.stall
+  instruction_valid.io.flush  := io.flush
+  io.output_instruction_valid := instruction_valid.io.out.asBool
 
   val interrupt_flag = Module(new PipelineRegister(Parameters.InterruptFlagBits))
   interrupt_flag.io.in     := io.interrupt_flag
