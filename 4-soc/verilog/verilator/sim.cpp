@@ -685,6 +685,19 @@ int main(int argc, char **argv)
     top->eval();
     uint32_t total_branches = top->io_cpu_csr_debug_read_data;
     
+    // Read minstret (0xB02) for instruction count and IPC
+    top->io_cpu_csr_debug_read_address = 0xB02;
+    top->eval();
+    uint32_t instructions = top->io_cpu_csr_debug_read_data;
+    
+    if (instructions > 0 && cycle > 0) {
+        double ipc = static_cast<double>(instructions) / cycle;
+        std::cout << "\nPerformance:\n";
+        std::cout << "  Instructions: " << instructions << "\n";
+        std::cout << "  Cycles: " << cycle << "\n";
+        std::cout << "  IPC: " << std::fixed << std::setprecision(3) << ipc << "\n";
+    }
+    
     if (total_branches > 0) {
         double mispredict_rate = 100.0 * mispredictions / total_branches;
         std::cout << "\nBranch Prediction:\n";

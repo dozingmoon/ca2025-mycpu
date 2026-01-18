@@ -11,7 +11,7 @@ int fib(int n)
 
 int main()
 {
-    *(int *) (4) = fib(10);
+    *(int *) (4) = fib(20);
     *(volatile int *) (0x104) = 0x0F; // Signal success (UART_TEST_PASS)
     *(volatile int *) (0x100) = 0xCAFEF00D; // Signal completion to sim.cpp
 }

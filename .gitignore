@@ -15,6 +15,7 @@ project/plugins/project/
 *.elf
 *.hex
 *.dump
+*.asmbin
 
 ### Logs and crash dumps
 *.log
