@@ -23,16 +23,11 @@ class GSharePredictor(entries: Int = 16, historyLength: Int = 8, phtIndexBits: I
 
   // Helper functions
   
-  // GShare index: XOR PC bits with folded history
+  // GShare index: XOR PC bits with lower bits of history (no folding)
   def getPhtIndex(pc: UInt, hist: UInt): UInt = {
     val pcBits = pc(phtIndexBits + 1, 2)
-    // Use full history, fold if necessary
-    val histBits = if (historyLength >= phtIndexBits) {
-      BranchPredictor.foldHistory(hist, historyLength, phtIndexBits)
-    } else {
-      // Pad history if shorter than index
-      Cat(0.U((phtIndexBits - historyLength).W), hist)
-    }
+    // Use lower bits of history directly
+    val histBits = hist(phtIndexBits - 1, 0)
     pcBits ^ histBits
   }
 
