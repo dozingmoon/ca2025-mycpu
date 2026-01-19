@@ -1,0 +1,361 @@
+
+dijkstra.elf:     file format elf32-littleriscv
+
+
+Disassembly of section .text:
+
+00001000 <_start>:
+    1000:	00002197          	auipc	gp,0x2
+    1004:	89018193          	addi	gp,gp,-1904 # 2890 <__global_pointer$>
+    1008:	00400137          	lui	sp,0x400
+    100c:	00001297          	auipc	t0,0x1
+    1010:	08428293          	addi	t0,t0,132 # 2090 <__sbss_end>
+    1014:	00001317          	auipc	t1,0x1
+    1018:	07c30313          	addi	t1,t1,124 # 2090 <__sbss_end>
+
+0000101c <sbss_clear_loop>:
+    101c:	0062f863          	bgeu	t0,t1,102c <sbss_clear_done>
+    1020:	0002a023          	sw	zero,0(t0)
+    1024:	00428293          	addi	t0,t0,4
+    1028:	ff5ff06f          	j	101c <sbss_clear_loop>
+
+0000102c <sbss_clear_done>:
+    102c:	000ff297          	auipc	t0,0xff
+    1030:	fd428293          	addi	t0,t0,-44 # 100000 <sptSet>
+    1034:	000ff317          	auipc	t1,0xff
+    1038:	ffc30313          	addi	t1,t1,-4 # 100030 <__bss_end>
+
+0000103c <bss_clear_loop>:
+    103c:	0062f863          	bgeu	t0,t1,104c <bss_clear_done>
+    1040:	0002a023          	sw	zero,0(t0)
+    1044:	00428293          	addi	t0,t0,4
+    1048:	ff5ff06f          	j	103c <bss_clear_loop>
+
+0000104c <bss_clear_done>:
+    104c:	18c000ef          	jal	11d8 <main>
+
+00001050 <loop>:
+    1050:	10500073          	wfi
+    1054:	ffdff06f          	j	1050 <loop>
+
+00001058 <enable_interrupt>:
+    1058:	00000297          	auipc	t0,0x0
+    105c:	04828293          	addi	t0,t0,72 # 10a0 <__trap_entry>
+    1060:	30529373          	csrrw	t1,mtvec,t0
+    1064:	00800293          	li	t0,8
+    1068:	3002a073          	csrs	mstatus,t0
+    106c:	000012b7          	lui	t0,0x1
+    1070:	88028293          	addi	t0,t0,-1920 # 880 <_start-0x780>
+    1074:	3042a073          	csrs	mie,t0
+    1078:	00008067          	ret
+
+0000107c <enable_paging>:
+    107c:	800002b7          	lui	t0,0x80000
+    1080:	00528293          	addi	t0,t0,5 # 80000005 <STACK_LIMIT+0x7fe00005>
+    1084:	18029073          	csrw	satp,t0
+    1088:	00008067          	ret
+
+0000108c <get_mtval>:
+    108c:	34302573          	csrr	a0,mtval
+    1090:	00008067          	ret
+
+00001094 <get_epc>:
+    1094:	34102573          	csrr	a0,mepc
+    1098:	00008067          	ret
+
+0000109c <trap_handler>:
+    109c:	00008067          	ret
+
+000010a0 <__trap_entry>:
+    10a0:	34011073          	csrw	mscratch,sp
+    10a4:	f8010113          	addi	sp,sp,-128 # 3fff80 <STACK_LIMIT+0x1fff80>
+    10a8:	002002b7          	lui	t0,0x200
+    10ac:	10516463          	bltu	sp,t0,11b4 <__stack_overflow_trap>
+    10b0:	00112223          	sw	ra,4(sp)
+    10b4:	00312623          	sw	gp,12(sp)
+    10b8:	00412823          	sw	tp,16(sp)
+    10bc:	00512a23          	sw	t0,20(sp)
+    10c0:	00612c23          	sw	t1,24(sp)
+    10c4:	00712e23          	sw	t2,28(sp)
+    10c8:	02812023          	sw	s0,32(sp)
+    10cc:	02912223          	sw	s1,36(sp)
+    10d0:	02a12423          	sw	a0,40(sp)
+    10d4:	02b12623          	sw	a1,44(sp)
+    10d8:	02c12823          	sw	a2,48(sp)
+    10dc:	02d12a23          	sw	a3,52(sp)
+    10e0:	02e12c23          	sw	a4,56(sp)
+    10e4:	02f12e23          	sw	a5,60(sp)
+    10e8:	05012023          	sw	a6,64(sp)
+    10ec:	05112223          	sw	a7,68(sp)
+    10f0:	05212423          	sw	s2,72(sp)
+    10f4:	05312623          	sw	s3,76(sp)
+    10f8:	05412823          	sw	s4,80(sp)
+    10fc:	05512a23          	sw	s5,84(sp)
+    1100:	05612c23          	sw	s6,88(sp)
+    1104:	05712e23          	sw	s7,92(sp)
+    1108:	07812023          	sw	s8,96(sp)
+    110c:	07912223          	sw	s9,100(sp)
+    1110:	07a12423          	sw	s10,104(sp)
+    1114:	07b12623          	sw	s11,108(sp)
+    1118:	07c12823          	sw	t3,112(sp)
+    111c:	07d12a23          	sw	t4,116(sp)
+    1120:	07e12c23          	sw	t5,120(sp)
+    1124:	07f12e23          	sw	t6,124(sp)
+    1128:	34102573          	csrr	a0,mepc
+    112c:	342025f3          	csrr	a1,mcause
+    1130:	f6dff0ef          	jal	109c <trap_handler>
+    1134:	00412083          	lw	ra,4(sp)
+    1138:	00c12183          	lw	gp,12(sp)
+    113c:	01012203          	lw	tp,16(sp)
+    1140:	01412283          	lw	t0,20(sp)
+    1144:	01812303          	lw	t1,24(sp)
+    1148:	01c12383          	lw	t2,28(sp)
+    114c:	02012403          	lw	s0,32(sp)
+    1150:	02412483          	lw	s1,36(sp)
+    1154:	02812503          	lw	a0,40(sp)
+    1158:	02c12583          	lw	a1,44(sp)
+    115c:	03012603          	lw	a2,48(sp)
+    1160:	03412683          	lw	a3,52(sp)
+    1164:	03812703          	lw	a4,56(sp)
+    1168:	03c12783          	lw	a5,60(sp)
+    116c:	04012803          	lw	a6,64(sp)
+    1170:	04412883          	lw	a7,68(sp)
+    1174:	04812903          	lw	s2,72(sp)
+    1178:	04c12983          	lw	s3,76(sp)
+    117c:	05012a03          	lw	s4,80(sp)
+    1180:	05412a83          	lw	s5,84(sp)
+    1184:	05812b03          	lw	s6,88(sp)
+    1188:	05c12b83          	lw	s7,92(sp)
+    118c:	06012c03          	lw	s8,96(sp)
+    1190:	06412c83          	lw	s9,100(sp)
+    1194:	06812d03          	lw	s10,104(sp)
+    1198:	06c12d83          	lw	s11,108(sp)
+    119c:	07012e03          	lw	t3,112(sp)
+    11a0:	07412e83          	lw	t4,116(sp)
+    11a4:	07812f03          	lw	t5,120(sp)
+    11a8:	07c12f83          	lw	t6,124(sp)
+    11ac:	34002173          	csrr	sp,mscratch
+    11b0:	30200073          	mret
+
+000011b4 <__stack_overflow_trap>:
+    11b4:	34002173          	csrr	sp,mscratch
+    11b8:	dead62b7          	lui	t0,0xdead6
+    11bc:	acf28293          	addi	t0,t0,-1329 # dead5acf <STACK_LIMIT+0xde8d5acf>
+    11c0:	00200337          	lui	t1,0x200
+    11c4:	00532023          	sw	t0,0(t1) # 200000 <STACK_LIMIT>
+    11c8:	fff00293          	li	t0,-1
+    11cc:	0002a023          	sw	zero,0(t0)
+
+000011d0 <__stack_overflow_halt>:
+    11d0:	10500073          	wfi
+    11d4:	ffdff06f          	j	11d0 <__stack_overflow_halt>
+
+000011d8 <main>:
+    11d8:	ff010113          	addi	sp,sp,-16
+    11dc:	00000513          	li	a0,0
+    11e0:	00112623          	sw	ra,12(sp)
+    11e4:	090000ef          	jal	1274 <dijkstra>
+    11e8:	001007b7          	lui	a5,0x100
+    11ec:	0287a683          	lw	a3,40(a5) # 100028 <dist+0x10>
+    11f0:	01500793          	li	a5,21
+    11f4:	00000713          	li	a4,0
+    11f8:	00f69863          	bne	a3,a5,1208 <main+0x30>
+    11fc:	00f00793          	li	a5,15
+    1200:	10f02223          	sw	a5,260(zero) # 104 <_start-0xefc>
+    1204:	00100713          	li	a4,1
+    1208:	00c12083          	lw	ra,12(sp)
+    120c:	cafef7b7          	lui	a5,0xcafef
+    1210:	00d78793          	addi	a5,a5,13 # cafef00d <STACK_LIMIT+0xcadef00d>
+    1214:	00e02223          	sw	a4,4(zero) # 4 <_start-0xffc>
+    1218:	10f02023          	sw	a5,256(zero) # 100 <_start-0xf00>
+    121c:	00000513          	li	a0,0
+    1220:	01010113          	addi	sp,sp,16
+    1224:	00008067          	ret
+
+00001228 <minDistance>:
+    1228:	001007b7          	lui	a5,0x100
+    122c:	00078793          	mv	a5,a5
+    1230:	800005b7          	lui	a1,0x80000
+    1234:	01878693          	addi	a3,a5,24 # 100018 <dist>
+    1238:	fff58593          	addi	a1,a1,-1 # 7fffffff <STACK_LIMIT+0x7fdfffff>
+    123c:	00000713          	li	a4,0
+    1240:	00000513          	li	a0,0
+    1244:	00600813          	li	a6,6
+    1248:	0007a603          	lw	a2,0(a5)
+    124c:	00478793          	addi	a5,a5,4
+    1250:	00061a63          	bnez	a2,1264 <minDistance+0x3c>
+    1254:	0006a603          	lw	a2,0(a3)
+    1258:	00c5c663          	blt	a1,a2,1264 <minDistance+0x3c>
+    125c:	00060593          	mv	a1,a2
+    1260:	00070513          	mv	a0,a4
+    1264:	00170713          	addi	a4,a4,1
+    1268:	00468693          	addi	a3,a3,4
+    126c:	fd071ee3          	bne	a4,a6,1248 <minDistance+0x20>
+    1270:	00008067          	ret
+
+00001274 <dijkstra>:
+    1274:	00100737          	lui	a4,0x100
+    1278:	00070e13          	mv	t3,a4
+    127c:	00070e93          	mv	t4,a4
+    1280:	018e0e13          	addi	t3,t3,24
+    1284:	800006b7          	lui	a3,0x80000
+    1288:	00070f13          	mv	t5,a4
+    128c:	000e0793          	mv	a5,t3
+    1290:	030e8813          	addi	a6,t4,48
+    1294:	00070713          	mv	a4,a4
+    1298:	fff68693          	addi	a3,a3,-1 # 7fffffff <STACK_LIMIT+0x7fdfffff>
+    129c:	00d7a023          	sw	a3,0(a5)
+    12a0:	00072023          	sw	zero,0(a4) # 100000 <sptSet>
+    12a4:	00478793          	addi	a5,a5,4
+    12a8:	00470713          	addi	a4,a4,4
+    12ac:	fef818e3          	bne	a6,a5,129c <dijkstra+0x28>
+    12b0:	00251793          	slli	a5,a0,0x2
+    12b4:	00ff07b3          	add	a5,t5,a5
+    12b8:	000022b7          	lui	t0,0x2
+    12bc:	80000fb7          	lui	t6,0x80000
+    12c0:	0007ac23          	sw	zero,24(a5)
+    12c4:	00028293          	mv	t0,t0
+    12c8:	ffff8f93          	addi	t6,t6,-1 # 7fffffff <STACK_LIMIT+0x7fdfffff>
+    12cc:	00500313          	li	t1,5
+    12d0:	00600513          	li	a0,6
+    12d4:	00100393          	li	t2,1
+    12d8:	000e0693          	mv	a3,t3
+    12dc:	000e8713          	mv	a4,t4
+    12e0:	00000593          	li	a1,0
+    12e4:	000f8893          	mv	a7,t6
+    12e8:	00000793          	li	a5,0
+    12ec:	00072603          	lw	a2,0(a4)
+    12f0:	00470713          	addi	a4,a4,4
+    12f4:	00061a63          	bnez	a2,1308 <dijkstra+0x94>
+    12f8:	0006a603          	lw	a2,0(a3)
+    12fc:	00c8c663          	blt	a7,a2,1308 <dijkstra+0x94>
+    1300:	00060893          	mv	a7,a2
+    1304:	00078593          	mv	a1,a5
+    1308:	00178793          	addi	a5,a5,1
+    130c:	00468693          	addi	a3,a3,4
+    1310:	fca79ee3          	bne	a5,a0,12ec <dijkstra+0x78>
+    1314:	00159793          	slli	a5,a1,0x1
+    1318:	00b787b3          	add	a5,a5,a1
+    131c:	00259593          	slli	a1,a1,0x2
+    1320:	00379793          	slli	a5,a5,0x3
+    1324:	00bf05b3          	add	a1,t5,a1
+    1328:	00f287b3          	add	a5,t0,a5
+    132c:	0075a023          	sw	t2,0(a1)
+    1330:	000e0713          	mv	a4,t3
+    1334:	000e8693          	mv	a3,t4
+    1338:	0006a603          	lw	a2,0(a3)
+    133c:	00468693          	addi	a3,a3,4
+    1340:	02061263          	bnez	a2,1364 <dijkstra+0xf0>
+    1344:	0007a603          	lw	a2,0(a5)
+    1348:	00060e63          	beqz	a2,1364 <dijkstra+0xf0>
+    134c:	0185a883          	lw	a7,24(a1)
+    1350:	01160633          	add	a2,a2,a7
+    1354:	01f88863          	beq	a7,t6,1364 <dijkstra+0xf0>
+    1358:	00072883          	lw	a7,0(a4)
+    135c:	01165463          	bge	a2,a7,1364 <dijkstra+0xf0>
+    1360:	00c72023          	sw	a2,0(a4)
+    1364:	00470713          	addi	a4,a4,4
+    1368:	00478793          	addi	a5,a5,4
+    136c:	fce816e3          	bne	a6,a4,1338 <dijkstra+0xc4>
+    1370:	fff30313          	addi	t1,t1,-1
+    1374:	f60312e3          	bnez	t1,12d8 <dijkstra+0x64>
+    1378:	00008067          	ret
+
+Disassembly of section .data:
+
+00002000 <graph>:
+    2000:	0000                	.insn	2, 0x
+    2002:	0000                	.insn	2, 0x
+    2004:	0004                	.insn	2, 0x0004
+	...
+    2016:	0000                	.insn	2, 0x
+    2018:	0004                	.insn	2, 0x0004
+    201a:	0000                	.insn	2, 0x
+    201c:	0000                	.insn	2, 0x
+    201e:	0000                	.insn	2, 0x
+    2020:	0008                	.insn	2, 0x0008
+	...
+    2032:	0000                	.insn	2, 0x
+    2034:	0008                	.insn	2, 0x0008
+    2036:	0000                	.insn	2, 0x
+    2038:	0000                	.insn	2, 0x
+    203a:	0000                	.insn	2, 0x
+    203c:	00000007          	.insn	4, 0x0007
+    2040:	0000                	.insn	2, 0x
+    2042:	0000                	.insn	2, 0x
+    2044:	0004                	.insn	2, 0x0004
+	...
+    204e:	0000                	.insn	2, 0x
+    2050:	00000007          	.insn	4, 0x0007
+    2054:	0000                	.insn	2, 0x
+    2056:	0000                	.insn	2, 0x
+    2058:	0009                	.insn	2, 0x0009
+    205a:	0000                	.insn	2, 0x
+    205c:	000e                	.insn	2, 0x000e
+	...
+    206a:	0000                	.insn	2, 0x
+    206c:	0009                	.insn	2, 0x0009
+    206e:	0000                	.insn	2, 0x
+    2070:	0000                	.insn	2, 0x
+    2072:	0000                	.insn	2, 0x
+    2074:	000a                	.insn	2, 0x000a
+	...
+    207e:	0000                	.insn	2, 0x
+    2080:	0004                	.insn	2, 0x0004
+    2082:	0000                	.insn	2, 0x
+    2084:	000e                	.insn	2, 0x000e
+    2086:	0000                	.insn	2, 0x
+    2088:	000a                	.insn	2, 0x000a
+    208a:	0000                	.insn	2, 0x
+    208c:	0000                	.insn	2, 0x
+	...
+
+Disassembly of section .comment:
+
+00000000 <.comment>:
+   0:	3a434347          	.insn	4, 0x3a434347
+   4:	2820                	.insn	2, 0x2820
+   6:	5078                	.insn	2, 0x5078
+   8:	6361                	.insn	2, 0x6361
+   a:	4e47206b          	.insn	4, 0x4e47206b
+   e:	2055                	.insn	2, 0x2055
+  10:	4952                	.insn	2, 0x4952
+  12:	562d4353          	.insn	4, 0x562d4353
+  16:	4520                	.insn	2, 0x4520
+  18:	626d                	.insn	2, 0x626d
+  1a:	6465                	.insn	2, 0x6465
+  1c:	6564                	.insn	2, 0x6564
+  1e:	2064                	.insn	2, 0x2064
+  20:	20434347          	.insn	4, 0x20434347
+  24:	3878                	.insn	2, 0x3878
+  26:	5f36                	.insn	2, 0x5f36
+  28:	3436                	.insn	2, 0x3436
+  2a:	2029                	.insn	2, 0x2029
+  2c:	3431                	.insn	2, 0x3431
+  2e:	322e                	.insn	2, 0x322e
+  30:	302e                	.insn	2, 0x302e
+	...
+
+Disassembly of section .riscv.attributes:
+
+00000000 <.riscv.attributes>:
+   0:	2841                	.insn	2, 0x2841
+   2:	0000                	.insn	2, 0x
+   4:	7200                	.insn	2, 0x7200
+   6:	7369                	.insn	2, 0x7369
+   8:	01007663          	bgeu	zero,a6,14 <_start-0xfec>
+   c:	001e                	.insn	2, 0x001e
+   e:	0000                	.insn	2, 0x
+  10:	1004                	.insn	2, 0x1004
+  12:	7205                	.insn	2, 0x7205
+  14:	3376                	.insn	2, 0x3376
+  16:	6932                	.insn	2, 0x6932
+  18:	7032                	.insn	2, 0x7032
+  1a:	5f31                	.insn	2, 0x5f31
+  1c:	697a                	.insn	2, 0x697a
+  1e:	32727363          	bgeu	tp,t2,344 <_start-0xcbc>
+  22:	3070                	.insn	2, 0x3070
+  24:	0800                	.insn	2, 0x0800
+  26:	0a01                	.insn	2, 0x0a01
+  28:	Address 0x28 is out of bounds.
+

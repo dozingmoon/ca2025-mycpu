@@ -7,8 +7,8 @@
 #include <cstdio>
 #include <cstring>
 #include <fstream>
-#include <iomanip>
 #include <iostream>
+#include <iomanip>
 #include <memory>
 #include <queue>
 #include <vector>
@@ -18,9 +18,9 @@
 #include <termios.h>
 #include <unistd.h>
 
-#include <verilated_vcd_c.h>
 #include "VTop.h"
 #include "vga_display.h"
+#include <verilated_vcd_c.h>
 
 class VCDTracer
 {
@@ -363,6 +363,8 @@ int main(int argc, char **argv)
 {
     Verilated::commandArgs(argc, argv);
 
+    Verilated::commandArgs(argc, argv);
+
     const char *binary = nullptr;
     const char *vcd_file = nullptr;
     uint64_t max_cycles_arg = 0;
@@ -377,7 +379,7 @@ int main(int argc, char **argv)
         else if (!strcmp(argv[i], "--terminal") || !strcmp(argv[i], "-t"))
             interactive_mode = true;
         else if (!strcmp(argv[i], "-vcd") && i + 1 < argc)
-            vcd_file = argv[++i];
+             vcd_file = argv[++i];
         else if (!strcmp(argv[i], "-time") && i + 1 < argc)
             max_cycles_arg = std::stoull(argv[++i]);
     }
@@ -421,11 +423,11 @@ int main(int argc, char **argv)
 
     // Interactive terminal mode: no cycle limit (user exits with Ctrl-C)
     // Batch mode: 500M cycles to prevent runaway simulations
+    // Batch mode: 500M cycles to prevent runaway simulations
     // If -time is specified, it overrides the default.
     uint64_t max_cycles = interactive_mode ? UINT64_MAX : 500000000;
-    if (max_cycles_arg > 0)
-        max_cycles = max_cycles_arg;
-
+    if (max_cycles_arg > 0) max_cycles = max_cycles_arg;
+    
     // Enable VCD tracing if requested
     auto vcd_tracer = std::make_unique<VCDTracer>();
     if (vcd_file) {
@@ -476,29 +478,6 @@ int main(int argc, char **argv)
             last_report = cycle;
         }
 
-        // Debug: trace first 200 cycles
-        static uint32_t prev_pc = 0;
-        static int stuck_cycles = 0;
-        if (cycle < 2000 && top->clock) {
-            uint32_t pc = top->io_instruction_address;
-            if (pc != prev_pc) {
-                std::cerr << "[" << cycle << "] PC: 0x" << std::hex << pc
-                          << " inst: 0x" << inst << std::dec << "\n";
-                prev_pc = pc;
-                stuck_cycles = 0;
-            } else {
-                stuck_cycles++;
-                if (stuck_cycles < 10 || stuck_cycles % 100 == 0) {
-                    std::cerr << "[" << cycle << "] STUCK at PC: 0x" << std::hex
-                              << pc << " clk=" << (int) top->clock
-                              << " rd=" << (int) top->io_mem_slave_read
-                              << " wr=" << (int) top->io_mem_slave_write
-                              << " valid=" << (int) top->io_mem_slave_read_valid
-                              << " addr=0x" << top->io_mem_slave_address
-                              << std::dec << "\n";
-                }
-            }
-        }
         // SDL event polling (only if VGA is active)
         if (vga_initialized && !(cycle & 0x3FFF) && !vga->poll_events())
             break;
@@ -510,10 +489,9 @@ int main(int argc, char **argv)
         // This creates a stable snapshot of all DUT outputs for this clock
         // edge.
         top->eval();
-
+        
         // Dump VCD trace if enabled
-        if (vcd_file)
-            vcd_tracer->dump(cycle);
+        if (vcd_file) vcd_tracer->dump(cycle);
 
         // =====================================================================
         // CAPTURE PHASE: Snapshot all DUT outputs immediately after eval().
@@ -698,37 +676,35 @@ int main(int argc, char **argv)
               << std::dec << "\n";
 
     // Branch prediction statistics
-    // Read CSRs: mhpmcounter3 (0xB03) = mispredictions, mhpmcounter8 (0xB08) =
-    // total branches
+    // Read CSRs: mhpmcounter3 (0xB03) = mispredictions, mhpmcounter8 (0xB08) = total branches
     top->io_cpu_csr_debug_read_address = 0xB03;
     top->eval();
     uint32_t mispredictions = top->io_cpu_csr_debug_read_data;
-
+    
     top->io_cpu_csr_debug_read_address = 0xB08;
     top->eval();
     uint32_t total_branches = top->io_cpu_csr_debug_read_data;
-
+    
     // Read minstret (0xB02) for instruction count and IPC
     top->io_cpu_csr_debug_read_address = 0xB02;
     top->eval();
     uint32_t instructions = top->io_cpu_csr_debug_read_data;
-
+    
     if (instructions > 0 && cycle > 0) {
         double ipc = static_cast<double>(instructions) / cycle;
         std::cout << "\nPerformance:\n";
         std::cout << "  Instructions: " << instructions << "\n";
         std::cout << "  Cycles: " << cycle << "\n";
-        std::cout << "  IPC: " << std::fixed << std::setprecision(3) << ipc
-                  << "\n";
+        std::cout << "  IPC: " << std::fixed << std::setprecision(3) << ipc << "\n";
     }
-
+    
     if (total_branches > 0) {
         double mispredict_rate = 100.0 * mispredictions / total_branches;
         std::cout << "\nBranch Prediction:\n";
         std::cout << "  Total branches: " << total_branches << "\n";
         std::cout << "  Mispredictions: " << mispredictions << "\n";
-        std::cout << "  Misprediction rate: " << std::fixed
-                  << std::setprecision(2) << mispredict_rate << "%\n";
+        std::cout << "  Misprediction rate: " << std::fixed << std::setprecision(2) 
+                  << mispredict_rate << "%\n";
     }
 
     // Print VGA color diagnostics (only if VGA was used)

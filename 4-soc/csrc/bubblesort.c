@@ -2,7 +2,9 @@
 // MyCPU is freely redistributable under the MIT License. See the file
 // "LICENSE" for information on usage and redistribution of this file.
 
-#define SIZE 50
+#ifndef SIZE
+#define SIZE 10
+#endif
 
 #include "bubblesort_data.h"
 

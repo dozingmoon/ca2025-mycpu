@@ -5,12 +5,27 @@
 # Include common build utilities
 include ../common/build.mk
 
+# Default GShare enabled (1). Override with make GSHARE=0
+# TWOLEVEL enabled (1) overrides GShare. Override with make TWOLEVEL=1
+GSHARE ?= 1
+TWOLEVEL ?= 0
+FIB_N ?= 20
+SIZE ?= 100
+
+ifeq ($(TWOLEVEL),1)
+	SBT_ARGS := -DuseTwoLevel=true -DuseGShare=false
+else ifeq ($(GSHARE),1)
+	SBT_ARGS := -DuseGShare=true -DuseTwoLevel=false
+else
+	SBT_ARGS := -DuseGShare=false -DuseTwoLevel=false
+endif
+
 test:
-	cd .. && sbt "project soc" test
+	cd .. && sbt $(SBT_ARGS) "project soc" test
 
 verilator:
 	@if java -version >/dev/null 2>&1; then \
-		cd .. && PATH=$$HOME/.local/bin:$$PATH sbt "project soc" "runMain board.verilator.VerilogGenerator"; \
+		cd .. && PATH=$$HOME/.local/bin:$$PATH sbt $(SBT_ARGS) "project soc" "runMain board.verilator.VerilogGenerator"; \
 	else \
 		echo "⚠️  Java runtime not found; using existing generated Verilog in verilog/verilator"; \
 		if [ ! -f verilog/verilator/Top.v ]; then \
@@ -18,31 +33,27 @@ verilator:
 			exit 1; \
 		fi; \
 	fi
-	cd verilog/verilator && verilator --exe --cc --trace sim.cpp Top.v \
+	cd verilog/verilator && verilator --trace --exe --cc sim.cpp Top.v \
 		-CFLAGS "$$(sdl2-config --cflags)" \
 		-LDFLAGS "$$(sdl2-config --libs)" && \
 		make -C obj_dir -f VTop.mk
 
 sim: verilator
-	@if [ -z "$(BINARY)" ]; then \
-		echo "Usage: make sim BINARY=<path/to/file.asmbin>"; \
-		echo "Example: make sim BINARY=csrc/nyancat.asmbin"; \
-		exit 1; \
-	fi
-	@if [ ! -f "$(BINARY)" ]; then \
-		echo "Error: Binary file not found: $(BINARY)"; \
-		exit 1; \
-	fi
-	@echo "🎮 Running simulation with $(BINARY)..."
-	cd verilog/verilator/obj_dir && ./VTop -i ../../../$(BINARY)
+	cd verilog/verilator/obj_dir && ./VTop -vcd ../../../$(SIM_VCD) -time $(SIM_TIME) $(subst src/main/resources/,../../../src/main/resources/,$(SIM_ARGS))
 
-sim_fib: verilator
-	$(MAKE) -C csrc fibonacci.asmbin
-	$(MAKE) sim BINARY=csrc/fibonacci.asmbin
+sim_fib: 
+	@rm -f csrc/fibonacci.o csrc/fibonacci.elf csrc/fibonacci.asmbin
+	@$(MAKE) -C csrc fibonacci.asmbin FIB_N=$(FIB_N)
+	make sim SIM_ARGS="-instruction ../../../csrc/fibonacci.asmbin" SIM_TIME=100000000 SIM_VCD=trace.vcd
 
-sim_bub: verilator
-	$(MAKE) -C csrc bubblesort.asmbin
-	$(MAKE) sim BINARY=csrc/bubblesort.asmbin
+sim_bub:
+	@$(MAKE) -C csrc clean-bubblesort 2>/dev/null || rm -f csrc/bubblesort.o csrc/bubblesort.elf csrc/bubblesort.asmbin
+	@$(MAKE) -C csrc bubblesort.asmbin SIZE=$(SIZE)
+	make sim SIM_ARGS="-instruction ../../../csrc/bubblesort.asmbin" SIM_VCD=trace.vcd SIM_TIME=10000000
+
+sim_dijkstra:
+	$(MAKE) -C csrc all
+	make sim SIM_ARGS="-instruction ../../../csrc/dijkstra.asmbin" SIM_TIME=100000000 SIM_VCD=trace.vcd
 
 check-vga: verilator
 	@echo "🔄 Building nyancat binary..."
@@ -116,4 +127,4 @@ clean:
 distclean: clean
 	$(RM) -r results
 
-.PHONY: verilator test indent sim sim_fib sim_bub check-vga check-uart shell compliance clean distclean
+.PHONY: verilator test indent sim check-vga check-uart shell compliance clean distclean

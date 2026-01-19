@@ -1,4 +1,4 @@
-CROSS_COMPILE ?= $(HOME)/Library/xPacks/@xpack-dev-tools/riscv-none-elf-gcc/15.2.0-1.1/.content/bin/riscv-none-elf-
+CROSS_COMPILE ?= $(HOME)/rv/toolchain/bin/riscv-none-elf-
 
 ASFLAGS = -march=rv32i_zicsr -mabi=ilp32
 # Optimization required: -O2 produces large stack frames that overflow in deep call chains
@@ -12,8 +12,12 @@ LD := $(CROSS_COMPILE)ld
 OBJCOPY := $(CROSS_COMPILE)objcopy
 OBJDUMP := $(CROSS_COMPILE)objdump
 
+# Benchmark parameters
+FIB_N ?= 20
+SIZE ?= 10
+
 # Program targets (add new programs here)
-PROGRAMS := nyancat uart shell fibonacci bubblesort
+PROGRAMS := nyancat uart shell fibonacci bubblesort dijkstra
 BINARIES := $(PROGRAMS:%=%.asmbin)
 DUMPS := $(PROGRAMS:%=%.dump)
 
@@ -44,16 +48,20 @@ shell.elf: shell.c mmio.h init.o link.lds
 	$(CROSS_COMPILE)ld -o shell.elf -T link.lds $(LDFLAGS) shell.o init.o
 
 fibonacci.elf: fibonacci.c mmio.h init.o link.lds
-	$(CC) $(CFLAGS) -c -o fibonacci.o fibonacci.c
+	$(CC) $(CFLAGS) -DFIB_N=$(FIB_N) -c -o fibonacci.o fibonacci.c
 	$(CROSS_COMPILE)ld -o fibonacci.elf -T link.lds $(LDFLAGS) fibonacci.o init.o
+
+dijkstra.elf: dijkstra.c mmio.h init.o link.lds
+	$(CC) $(CFLAGS) -c -o dijkstra.o dijkstra.c
+	$(CROSS_COMPILE)ld -o dijkstra.elf -T link.lds $(LDFLAGS) dijkstra.o init.o
 
 bubblesort_data.h: bubblesort.dat
 	python3 -c 'import sys; print("int data[] = {" + ",".join(sys.stdin.read().split()) + "};")' < $< > $@
 
 bubblesort.o: bubblesort.c bubblesort_data.h
+	$(CC) $(CFLAGS) -DSIZE=$(SIZE) -c -o bubblesort.o bubblesort.c
 
-bubblesort.elf: bubblesort.c bubblesort_data.h mmio.h init.o link.lds
-	$(CC) $(CFLAGS) -c -o bubblesort.o bubblesort.c
+bubblesort.elf: bubblesort.o mmio.h init.o link.lds
 	$(CROSS_COMPILE)ld -o bubblesort.elf -T link.lds $(LDFLAGS) bubblesort.o init.o
 
 init.o: init.S
