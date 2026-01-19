@@ -20,7 +20,7 @@ import riscv.Parameters
  * - Table of saturating counters
  * - Indexed by history from Level 1
  */
-class TwoLevelLocalPredictor(entries: Int = 64, historyLength: Int = 10, counterBits: Int = 2) extends BaseBranchPredictor(entries) {
+class TwoLevelLocalPredictor(entries: Int = 64, historyLength: Int = 6, counterBits: Int = 2) extends BaseBranchPredictor(entries) {
   require(isPow2(entries), "L1 entries must be power of 2")
   
   val indexBits = log2Ceil(entries)
