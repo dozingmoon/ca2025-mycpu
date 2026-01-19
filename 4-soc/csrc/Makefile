@@ -17,7 +17,7 @@ FIB_N ?= 20
 SIZE ?= 10
 
 # Program targets (add new programs here)
-PROGRAMS := nyancat uart shell fibonacci bubblesort dijkstra
+PROGRAMS := nyancat uart shell bubblesort dijkstra shellsort isort parser chess pattern
 BINARIES := $(PROGRAMS:%=%.asmbin)
 DUMPS := $(PROGRAMS:%=%.dump)
 
@@ -47,9 +47,6 @@ shell.elf: shell.c mmio.h init.o link.lds
 	$(CC) $(CFLAGS) -c -o shell.o shell.c
 	$(CROSS_COMPILE)ld -o shell.elf -T link.lds $(LDFLAGS) shell.o init.o
 
-fibonacci.elf: fibonacci.c mmio.h init.o link.lds
-	$(CC) $(CFLAGS) -DFIB_N=$(FIB_N) -c -o fibonacci.o fibonacci.c
-	$(CROSS_COMPILE)ld -o fibonacci.elf -T link.lds $(LDFLAGS) fibonacci.o init.o
 
 dijkstra.elf: dijkstra.c mmio.h init.o link.lds
 	$(CC) $(CFLAGS) -c -o dijkstra.o dijkstra.c
@@ -63,6 +60,30 @@ bubblesort.o: bubblesort.c bubblesort_data.h
 
 bubblesort.elf: bubblesort.o mmio.h init.o link.lds
 	$(CROSS_COMPILE)ld -o bubblesort.elf -T link.lds $(LDFLAGS) bubblesort.o init.o
+
+shellsort.o: shellsort.c bubblesort_data.h
+	$(CC) $(CFLAGS) -DSIZE=$(SIZE) -c -o shellsort.o shellsort.c
+
+shellsort.elf: shellsort.o init.o link.lds
+	$(CROSS_COMPILE)ld -o shellsort.elf -T link.lds $(LDFLAGS) shellsort.o init.o
+
+isort.o: isort.c bubblesort_data.h
+	$(CC) $(CFLAGS) -DSIZE=$(SIZE) -c -o isort.o isort.c
+
+isort.elf: isort.o init.o link.lds
+	$(CROSS_COMPILE)ld -o isort.elf -T link.lds $(LDFLAGS) isort.o init.o
+
+parser.elf: parser.c init.o link.lds
+	$(CC) $(CFLAGS) -c -o parser.o parser.c
+	$(CROSS_COMPILE)ld -o parser.elf -T link.lds $(LDFLAGS) parser.o init.o
+
+chess.elf: chess.c init.o link.lds
+	$(CC) $(CFLAGS) -c -o chess.o chess.c
+	$(CROSS_COMPILE)ld -o chess.elf -T link.lds $(LDFLAGS) chess.o init.o
+
+pattern.elf: pattern.c init.o link.lds
+	$(CC) $(CFLAGS) -c -o pattern.o pattern.c
+	$(CROSS_COMPILE)ld -o pattern.elf -T link.lds $(LDFLAGS) pattern.o init.o
 
 init.o: init.S
 	$(AS) -R $(ASFLAGS) -o $@ $<

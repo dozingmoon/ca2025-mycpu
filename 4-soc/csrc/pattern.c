@@ -1,58 +1,83 @@
 // SPDX-License-Identifier: MIT
-// Pattern benchmark: Alternating branch pattern (T, T, N)
+// Pattern matching - simulates gobmk-like Go game patterns
 
-// This program creates a loop with a conditional branch that follows
-// a repeating pattern: Taken, Taken, Not-Taken.
-// This pattern (length 3) repeats 33 times in a loop of 100 iterations.
-//
-// Pattern: 1, 1, 0, 1, 1, 0, ...
-// Simple 2-bit counter (saturating):
-// - Updates: T (inc), T (inc), N (dec) -> tends to stay strictly taken
-// - Mispredicts on every 'Not-Taken' (1/3 misprediction rate)
-//
-// GShare:
-// - Can learn the pattern if history length >= 3
-// - Should achieve near-perfect prediction
+#define BOARD_SIZE 9
+#define EMPTY 0
+#define BLACK 1
+#define WHITE 2
 
-#include "mmio.h"
+int board[BOARD_SIZE * BOARD_SIZE];
 
-int main()
-{
-    volatile int result = 0;
+// Pattern templates (3x3 patterns)
+int patterns[][9] = {
+    {0,1,0, 1,0,1, 0,1,0},  // Cross pattern
+    {1,1,1, 1,0,1, 1,1,1},  // Surrounded
+    {0,0,1, 0,1,0, 1,0,0},  // Diagonal
+    {1,0,1, 0,0,0, 1,0,1},  // Corners
+    {0,1,0, 0,1,0, 0,1,0},  // Vertical line
+    {0,0,0, 1,1,1, 0,0,0},  // Horizontal line
+};
+#define NUM_PATTERNS 6
+
+int match_pattern(int row, int col, int *pattern) {
+    if (row < 1 || row > BOARD_SIZE - 2) return 0;
+    if (col < 1 || col > BOARD_SIZE - 2) return 0;
     
-    // Loop 100 times
-    // We want a T, T, N pattern based on loop index i is not a multiple of 3?
-    // Let's do: if (i % 3 != 0) -> Taken (1, 2, 4, 5...)
-    // else -> Not Taken (0, 3, 6...)
-    // Actually, simple loop condition is easiest.
-    
-    int state = 0;
-    for (int i = 0; i < 100; i++) {
-        // Update state: 0 -> 1 -> 2 -> 0
-        state++;
-        if (state == 3) {
-            state = 0;
+    int matches = 1;
+    for (int dr = -1; dr <= 1; dr++) {
+        for (int dc = -1; dc <= 1; dc++) {
+            int idx = (row + dr) * BOARD_SIZE + (col + dc);
+            int pat_idx = (dr + 1) * 3 + (dc + 1);
+            int expected = pattern[pat_idx];
+            int actual = board[idx];
+            
+            // Pattern 0 = don't care, 1 = must match BLACK
+            if (expected == 1 && actual != BLACK) {
+                matches = 0;
+            }
         }
+    }
+    return matches;
+}
 
-        // We want T, T, N pattern for the branch below.
-        // i=0: state becomes 1. if (state != 0) -> Taken.
-        // i=1: state becomes 2. if (state != 0) -> Taken.
-        // i=2: state becomes 0. if (state != 0) -> Not Taken.
+void init_board(int seed) {
+    for (int i = 0; i < BOARD_SIZE * BOARD_SIZE; i++) {
+        // xorshift PRNG (no multiply needed)
+        seed ^= seed << 13;
+        seed ^= seed >> 17;
+        seed ^= seed << 5;
+        board[i] = seed & 3;
+        if (board[i] == 3) board[i] = 0;
+    }
+}
+
+int main() {
+    int total_matches = 0;
+    
+    // Multiple board configurations
+    for (int config = 0; config < 1; config++) {
+        init_board(config * 17 + 42);
         
-        // This conditional branch follows T, T, N pattern
-        if (state != 0) {
-           result++;
+        // Check all patterns at all positions
+        for (int row = 0; row < BOARD_SIZE; row++) {
+            for (int col = 0; col < BOARD_SIZE; col++) {
+                for (int p = 0; p < NUM_PATTERNS; p++) {
+                    if (match_pattern(row, col, patterns[p])) {
+                        total_matches++;
+                    }
+                }
+            }
         }
     }
     
-    // Write result to verify correctness
-    *(volatile int *) (4) = result; // Should be 34 (100/3 rounded up? 0..99 count of div3)
-    // 0, 3, ..., 99. 
-    // 99 / 3 = 33. plus 0 makes 34. Correct.
+    *(int *)(4) = total_matches;
     
-    // Signal success
-    *(volatile int *) (0x104) = 0x0F;
-    *(volatile int *) (0x100) = 0xCAFEF00D;
+    if (total_matches >= 0) {
+        *(volatile int *)(0x104) = 0x0F;
+    } else {
+        *(volatile int *)(0x104) = 0x01;
+    }
     
+    *(volatile int *)(0x100) = 0xCAFEF00D;
     return 0;
 }

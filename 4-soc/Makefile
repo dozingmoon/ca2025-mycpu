@@ -7,17 +7,22 @@ include ../common/build.mk
 
 # Default GShare enabled (1). Override with make GSHARE=0
 # TWOLEVEL enabled (1) overrides GShare. Override with make TWOLEVEL=1
+# PERCEPTRON_B enabled (1) overrides others.
 GSHARE ?= 1
 TWOLEVEL ?= 0
+PERCEPTRON_B ?= 0
 FIB_N ?= 20
 SIZE ?= 10
+SIM_TIME ?= 1000000000
 
-ifeq ($(TWOLEVEL),1)
-	SBT_ARGS := -DuseTwoLevel=true -DuseGShare=false
+ifeq ($(PERCEPTRON_B),1)
+	SBT_ARGS := -DusePerceptronB=true -DuseGShare=false -DuseTwoLevel=false
+else ifeq ($(TWOLEVEL),1)
+	SBT_ARGS := -DuseTwoLevel=true -DuseGShare=false -DusePerceptronB=false
 else ifeq ($(GSHARE),1)
-	SBT_ARGS := -DuseGShare=true -DuseTwoLevel=false
+	SBT_ARGS := -DuseGShare=true -DuseTwoLevel=false -DusePerceptronB=false
 else
-	SBT_ARGS := -DuseGShare=false -DuseTwoLevel=false
+	SBT_ARGS := -DuseGShare=false -DuseTwoLevel=false -DusePerceptronB=false
 endif
 
 test:
@@ -39,19 +44,38 @@ verilator:
 		make -C obj_dir -f VTop.mk
 
 sim: verilator
-	cd verilog/verilator/obj_dir && ./VTop -vcd ../../../$(SIM_VCD) -time $(SIM_TIME) $(subst src/main/resources/,../../../src/main/resources/,$(SIM_ARGS))
+	cd verilog/verilator/obj_dir && ./VTop $(if $(SIM_VCD),-vcd ../../../$(SIM_VCD)) -time $(SIM_TIME) $(subst src/main/resources/,../../../src/main/resources/,$(SIM_ARGS))
 
-sim_fib: 
-	@$(MAKE) -C csrc fibonacci.asmbin FIB_N=$(FIB_N)
-	make sim SIM_ARGS="-instruction ../../../csrc/fibonacci.asmbin" SIM_TIME=100000000 SIM_VCD=trace.vcd
 
 sim_bub:
+	@$(MAKE) -C csrc clean
 	@$(MAKE) -C csrc bubblesort.asmbin SIZE=$(SIZE)
-	make sim SIM_ARGS="-instruction ../../../csrc/bubblesort.asmbin" SIM_VCD=trace.vcd SIM_TIME=10000000
+	make sim SIM_ARGS="-instruction ../../../csrc/bubblesort.asmbin" SIM_VCD=$(SIM_VCD) SIM_TIME=$(SIM_TIME)
 
 sim_dijkstra:
-	$(MAKE) -C csrc all
-	make sim SIM_ARGS="-instruction ../../../csrc/dijkstra.asmbin" SIM_TIME=1000000 SIM_VCD=trace.vcd
+	@$(MAKE) -C csrc clean
+	@$(MAKE) -C csrc dijkstra.asmbin
+	make sim SIM_ARGS="-instruction ../../../csrc/dijkstra.asmbin" SIM_VCD=$(SIM_VCD) SIM_TIME=$(SIM_TIME)
+
+sim_shellsort:
+	@$(MAKE) -C csrc clean
+	@$(MAKE) -C csrc shellsort.asmbin SIZE=$(SIZE)
+	make sim SIM_ARGS="-instruction ../../../csrc/shellsort.asmbin" SIM_VCD=$(SIM_VCD) SIM_TIME=$(SIM_TIME)
+
+sim_parser:
+	@$(MAKE) -C csrc clean
+	@$(MAKE) -C csrc parser.asmbin
+	make sim SIM_ARGS="-instruction ../../../csrc/parser.asmbin" SIM_VCD=$(SIM_VCD) SIM_TIME=$(SIM_TIME)
+
+sim_chess:
+	@$(MAKE) -C csrc clean
+	@$(MAKE) -C csrc chess.asmbin
+	make sim SIM_ARGS="-instruction ../../../csrc/chess.asmbin" SIM_VCD=$(SIM_VCD) SIM_TIME=$(SIM_TIME)
+
+sim_pattern:
+	@$(MAKE) -C csrc clean
+	@$(MAKE) -C csrc pattern.asmbin
+	make sim SIM_ARGS="-instruction ../../../csrc/pattern.asmbin" SIM_VCD=$(SIM_VCD) SIM_TIME=$(SIM_TIME)
 
 check-vga: verilator
 	@echo "🔄 Building nyancat binary..."

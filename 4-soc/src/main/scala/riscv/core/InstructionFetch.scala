@@ -117,11 +117,12 @@ class InstructionFetch extends Module {
 
   // Branch Target Buffer / Predictor
   // Select implementation: Simple BTB or GShare
-  // Select implementation: Simple BTB, GShare, or Two-Level Local
+  // Select implementation: Simple BTB, GShare, Two-Level Local, or Perceptron
   // controlled by Make argument GSHARE (passed as -DuseGShare=true/false)
   // or TWOLEVEL (passed as -DuseTwoLevel=true/false)
-  val useGShare    = sys.props.getOrElse("useGShare", "true").toBoolean
-  val useTwoLevel  = sys.props.getOrElse("useTwoLevel", "false").toBoolean
+  val useGShare     = sys.props.getOrElse("useGShare", "true").toBoolean
+  val useTwoLevel   = sys.props.getOrElse("useTwoLevel", "false").toBoolean
+  val usePerceptron = sys.props.getOrElse("usePerceptronB", "false").toBoolean
 
   // Instantiate Shared BTB (Target Storage)
   val btb = Module(new BranchTargetBuffer(entries = 16))
@@ -132,7 +133,9 @@ class InstructionFetch extends Module {
   btb.io.update_taken  := io.btb_update_taken
 
   // Instantiate Direction Predictor
-  val predictor = if (useTwoLevel) {
+  val predictor = if (usePerceptron) {
+    Module(new PerceptronBPredictor(entries = 16, historyLength = 20))
+  } else if (useTwoLevel) {
     Module(new TwoLevelLocalPredictor(entries = 64, historyLength = 10))
   } else if (useGShare) {
     Module(new GSharePredictor(entries = 16, historyLength = 36, phtIndexBits = 6))

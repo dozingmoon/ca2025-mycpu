@@ -1,96 +1,113 @@
 import os
 import re
 import subprocess
-import random
-
-def generate_data(filename, size=200):
-    data = [random.randint(0, 1000) for _ in range(size)]
-    with open(filename, "w") as f:
-        f.write("int data[] = {" + ",".join(map(str, data)) + "};\n")
-
-def modify_size(filename, size):
-    with open(filename, "r") as f:
-        content = f.read()
-    
-    # regex to replace #define SIZE ...
-    new_content = re.sub(r"#define SIZE \d+", f"#define SIZE {size}", content)
-    
-    with open(filename, "w") as f:
-        f.write(new_content)
+import time
 
 def parse_output(output):
     ipc_match = re.search(r"IPC:\s+([\d\.]+)", output)
     mr_match = re.search(r"Misprediction rate:\s+([\d\.]+)%", output)
+    cycles_match = re.search(r"Cycles:\s+(\d+)", output)
     
     ipc = ipc_match.group(1) if ipc_match else "N/A"
     mr = mr_match.group(1) + "%" if mr_match else "N/A"
-    return ipc, mr
+    cycles = cycles_match.group(1) if cycles_match else "N/A"
+    return ipc, mr, cycles
 
 def run_command(cmd, cwd=None):
     try:
-        result = subprocess.run(cmd, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, cwd=cwd)
+        # Check if environment is sane
+        env = os.environ.copy()
+        result = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, cwd=cwd, env=env)
+        if result.returncode != 0:
+            print(f"Error running command: {cmd}")
+            print("STDOUT:", result.stdout[-500:]) # Print last 500 chars
+            print("STDERR:", result.stderr[-500:])
+            return ""
         return result.stdout
-    except subprocess.CalledProcessError as e:
-        print(f"Error running command: {cmd}")
-        print(e.stdout)
-        print(e.stderr)
+    except Exception as e:
+        print(f"Exception running command: {cmd}")
+        print(e)
         return ""
 
 def main():
     base_dir = "/home/jctai/Projects/ca2025-mycpu/4-soc"
-    csrc_dir = os.path.join(base_dir, "csrc")
-    data_header = os.path.join(csrc_dir, "bubblesort_data.h")
-    c_file = os.path.join(csrc_dir, "bubblesort.c")
     
-    # 1. Generate Data
-    print("Generating data...")
-    generate_data(data_header, 200)
+    # Configurations
+    # Format: (Name, ConfigString)
+    configs = [
+        ("BTB", "GSHARE=0 TWOLEVEL=0"),
+        ("GShare", "GSHARE=1 TWOLEVEL=0"),
+        ("TwoLevel", "TWOLEVEL=1")
+    ]
     
-    sizes = [10, 50, 100, 200]
-    configs = [0, 1] # GSHARE=0, GSHARE=1
+    # Benchmarks
+    # Format: (Name, Target, Params)
+    benchmarks = [
+        ("bubblesort(50)", "sim_bub", "SIZE=50"),
+        ("dijkstra", "sim_dijkstra", ""),
+        ("shellsort(50)", "sim_shellsort", "SIZE=50"),
+        ("parser", "sim_parser", ""),
+        ("chess", "sim_chess", ""),
+        ("pattern", "sim_pattern", "")
+    ]
     
-    results = {}
+    results = {} # Key: (benchmark_name, config_name) -> (ipc, mr, cycles)
     
-    for size in sizes:
-        print(f"Configuring Bubblesort Size: {size}")
-        modify_size(c_file, size)
+    print("Starting Comprehensive Benchmark Run...")
+    
+    # Run loop
+    for config_name, config_args in configs:
+        print(f"\n[{config_name}] Configuration")
         
-        # Compile asmbin
-        print("Compiling asmbin...")
-        run_command("make bubblesort.asmbin", cwd=csrc_dir)
+        # 1. Clean to ensure recompilation of hardware with new config
+        print(f"cleaning build...")
+        run_command("make clean", cwd=base_dir)
         
-        for gshare in configs:
-            print(f"Running size={size}, GSHARE={gshare}...")
-            # Use specific invalidation of verilator/obj_dir dependent on GSHARE change?
-            # Actually standard make verilator target should handle it, BUT
-            # we need to force sbt run if GSHARE changes.
-            # The Makefile does:
-            # verilator target depends on sbt running Board.VerilogGenerator.
-            # The Board.VerilogGenerator depends on sbt arg.
-            # So calling make GSHARE=... check-riscof (no)
-            # make GSHARE=... sim_bub
-            # sim_bub -> sim -> verilator -> sbt ...
-            # Yes, make should handle it.
+        for bench_name, target, params in benchmarks:
+            print(f"  Running {bench_name}...")
             
-            # Note: sim_bub calls 'make sim ...'. We need to pass GSHARE to the outer make.
-            output = run_command(f"make GSHARE={gshare} sim_bub", cwd=base_dir)
+            cmd = f"make {config_args} {params} {target}"
+            print(f"    Executing: {cmd}")
             
-            ipc, mr = parse_output(output)
-            print(f"Result: IPC={ipc}, MR={mr}")
-            results[(size, gshare)] = (ipc, mr)
-            
-    print("\n\nFinal Results:")
-    print("||IPC - BTB|IPC - gshare|MR - BTB|MR - gshare|")
-    print("|-|-|-|-|-|")
+            output = run_command(cmd, cwd=base_dir)
+            if not output:
+                print(f"    FAILED")
+                results[(bench_name, config_name)] = ("ERR", "ERR", "ERR")
+                continue
+                
+            ipc, mr, cycles = parse_output(output)
+            print(f"    Result: Cycles={cycles}, IPC={ipc}, MR={mr}")
+            results[(bench_name, config_name)] = (ipc, mr, cycles)
+
+    # Print Markdown Table
+    print("\n\n# Benchmark Results")
+    headers = ["Benchmark"]
+    for cfg, _ in configs:
+        headers.append(f"Cycles {cfg}")
+        headers.append(f"MR {cfg}")
     
-    # Print fib(20) row (static)
-    print("|`fib(20)`|0.160|0.160|8.30%|5.02%|")
+    header_line = "| " + " | ".join(headers) + " |"
+    sep_line = "| " + " | ".join(["---"] * len(headers)) + " |"
     
-    # Print bubblesort rows
-    for size in sizes:
-        ipc_btb, mr_btb = results.get((size, 0), ("-", "-"))
-        ipc_gshare, mr_gshare = results.get((size, 1), ("-", "-"))
-        print(f"|`bubblesort({size})`|{ipc_btb}|{ipc_gshare}|{mr_btb}|{mr_gshare}|")
+    print(header_line)
+    print(sep_line)
+    
+    for bench_name, _, _ in benchmarks:
+        row = [f"`{bench_name}`"]
+        for config_name, _ in configs:
+            ipc, mr, cycles = results.get((bench_name, config_name), ("-", "-", "-"))
+            if cycles != "ERR":
+                # Format cycles with commas
+                try: 
+                    cycles_fmt = f"{int(cycles):,}"
+                except:
+                    cycles_fmt = cycles
+                row.append(cycles_fmt)
+                row.append(mr)
+            else:
+                row.append("ERR")
+                row.append("ERR")
+        print("| " + " | ".join(row) + " |")
 
 if __name__ == "__main__":
     main()
