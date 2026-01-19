@@ -6,11 +6,18 @@
 include ../common/build.mk
 
 # Default GShare enabled (1). Override with make GSHARE=0
+# TWOLEVEL enabled (1) overrides GShare. Override with make TWOLEVEL=1
 GSHARE ?= 1
-ifeq ($(GSHARE),1)
-	SBT_ARGS := -DuseGShare=true
+TWOLEVEL ?= 0
+FIB_N ?= 20
+SIZE ?= 10
+
+ifeq ($(TWOLEVEL),1)
+	SBT_ARGS := -DuseTwoLevel=true -DuseGShare=false
+else ifeq ($(GSHARE),1)
+	SBT_ARGS := -DuseGShare=true -DuseTwoLevel=false
 else
-	SBT_ARGS := -DuseGShare=false
+	SBT_ARGS := -DuseGShare=false -DuseTwoLevel=false
 endif
 
 test:
@@ -35,12 +42,16 @@ sim: verilator
 	cd verilog/verilator/obj_dir && ./VTop -vcd ../../../$(SIM_VCD) -time $(SIM_TIME) $(subst src/main/resources/,../../../src/main/resources/,$(SIM_ARGS))
 
 sim_fib: 
-	$(MAKE) -C csrc all
-	make sim SIM_ARGS="-instruction ../../../csrc/fibonacci.asmbin" SIM_TIME=10000000 SIM_VCD=trace.vcd
+	@$(MAKE) -C csrc fibonacci.asmbin FIB_N=$(FIB_N)
+	make sim SIM_ARGS="-instruction ../../../csrc/fibonacci.asmbin" SIM_TIME=100000000 SIM_VCD=trace.vcd
 
 sim_bub:
+	@$(MAKE) -C csrc bubblesort.asmbin SIZE=$(SIZE)
+	make sim SIM_ARGS="-instruction ../../../csrc/bubblesort.asmbin" SIM_VCD=trace.vcd SIM_TIME=10000000
+
+sim_dijkstra:
 	$(MAKE) -C csrc all
-	make sim SIM_ARGS="-instruction ../../../csrc/bubblesort.asmbin" SIM_VCD=trace.vcd SIM_TIME=1000000
+	make sim SIM_ARGS="-instruction ../../../csrc/dijkstra.asmbin" SIM_TIME=1000000 SIM_VCD=trace.vcd
 
 check-vga: verilator
 	@echo "🔄 Building nyancat binary..."

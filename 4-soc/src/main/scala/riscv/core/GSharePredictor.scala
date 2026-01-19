@@ -8,7 +8,7 @@ import chisel3._
 import chisel3.util._
 import riscv.Parameters
 
-class GSharePredictor(entries: Int = 16, historyLength: Int = 8, phtIndexBits: Int = 4) extends BaseBranchPredictor(entries) {
+class GSharePredictor(entries: Int = 64, historyLength: Int = 16, phtIndexBits: Int = 6) extends BaseBranchPredictor(entries) {
   require(isPow2(entries), "GShare entries must be power of 2")
 
   val indexBits = log2Ceil(entries)
