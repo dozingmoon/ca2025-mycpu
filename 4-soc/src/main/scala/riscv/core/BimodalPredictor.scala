@@ -20,7 +20,7 @@ class BimodalPredictor(entries: Int = 16) extends BaseBranchPredictor(entries) {
 
   // 2-bit saturating counters
   // States: 0=SNT, 1=WNT, 2=WT, 3=ST
-  val counters = RegInit(VecInit(Seq.fill(entries)(1.U(2.W)))) // Initialize to Weakly Taken
+  val counters = RegInit(VecInit(Seq.fill(entries)(2.U(2.W)))) // Initialize to Weakly Taken
 
   def getIndex(pc: UInt): UInt = pc(indexBits + 1, 2)
 

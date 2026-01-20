@@ -1,6 +1,8 @@
+#!/usr/bin/env python3
 import os
 import re
 import subprocess
+import sys
 import time
 
 def parse_output(output):
@@ -19,9 +21,8 @@ def run_command(cmd, cwd=None):
         env = os.environ.copy()
         result = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, cwd=cwd, env=env)
         if result.returncode != 0:
-            print(f"Error running command: {cmd}")
-            print("STDOUT:", result.stdout[-500:]) # Print last 500 chars
-            print("STDERR:", result.stderr[-500:])
+            # Only print error if it's not a timeout (which returns non-zero usually 124, but here checks generic failure)
+            # If make fails, return empty to signal failure
             return ""
         return result.stdout
     except Exception as e:
@@ -29,12 +30,27 @@ def run_command(cmd, cwd=None):
         print(e)
         return ""
 
+import argparse
+
 def main():
-    base_dir = "/home/jctai/Projects/ca2025-mycpu/4-soc"
+    parser = argparse.ArgumentParser(description="Run benchmarks for MyCPU")
+    parser.add_argument("benchmark", nargs="?", help="Specific benchmark to run (partial name match)")
+    parser.add_argument("--config", "-c", help="Specific config to run (e.g., BTB, Per-B)")
+    args = parser.parse_args()
+
+    # Determine base directory (one level up from this script)
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    base_dir = os.path.dirname(script_dir) # Go up to 4-soc/
+    
+    # Check if Makefile exists
+    if not os.path.exists(os.path.join(base_dir, "Makefile")):
+        print(f"Error: Makefile not found in {base_dir}")
+        print("Please run this script from inside the 4-soc/scripts directory.")
+        sys.exit(1)
     
     # Configurations
     # Format: (Name, ConfigString)
-    configs = [
+    all_configs = [
         ("BTB", "MODEL=btb"),
         ("GShare", "MODEL=gshare"),
         ("TwoLevel", "MODEL=twolevel"),
@@ -42,50 +58,83 @@ def main():
         ("Per-B", "MODEL=per-b")
     ]
     
+    # Filter configs if requested
+    if args.config:
+        configs = [c for c in all_configs if args.config.lower() in c[0].lower()]
+        if not configs:
+            print(f"Error: Config '{args.config}' not found.")
+            sys.exit(1)
+    else:
+        configs = all_configs
+
     # Benchmarks
     # Format: (Name, Target, Params)
-    benchmarks = [
+    all_benchmarks = [
         ("bubblesort(50)", "sim_bub", "SIZE=50"),
-        ("dijkstra", "sim_dijkstra", ""),
+        ("bubblesort(100)", "sim_bub", "SIZE=100"),
         ("shellsort(50)", "sim_shellsort", "SIZE=50"),
-        ("parser", "sim_parser", ""),
+        ("shellsort(100)", "sim_shellsort", "SIZE=100"),
+        ("dijkstra", "sim_dijkstra", ""),
         ("chess", "sim_chess", ""),
-        ("pattern", "sim_pattern", "")
+        ("branchstress", "sim_branchstress", ""),
     ]
+
+    # Filter benchmarks if requested
+    if args.benchmark:
+        benchmarks = [b for b in all_benchmarks if args.benchmark.lower() in b[0].lower()]
+        if not benchmarks:
+            print(f"Error: Benchmark '{args.benchmark}' not found.")
+            sys.exit(1)
+    else:
+        benchmarks = all_benchmarks
     
     results = {} # Key: (benchmark_name, config_name) -> (ipc, mr, cycles)
     
-    print("Starting Comprehensive Benchmark Run...")
-    
+    print(f"Starting Benchmark Run for {len(benchmarks)} benchmarks across {len(configs)} configurations...")
+    print(f"Base Directory: {base_dir}")
+
     # Run loop
     for config_name, config_args in configs:
-        print(f"\n[{config_name}] Configuration")
+        print(f"\n[{config_name}] Configuration ({config_args})")
         
         # 1. Clean to ensure recompilation of hardware with new config
-        print(f"cleaning build...")
+        print(f"  Cleaning build...")
         run_command("make clean", cwd=base_dir)
         
         for bench_name, target, params in benchmarks:
-            print(f"  Running {bench_name}...")
+            print(f"  Running {bench_name}...", end="", flush=True)
             
             cmd = f"make {config_args} {params} {target}"
-            print(f"    Executing: {cmd}")
+            # print(f"    Executing: {cmd}")
             
+            # Using a simplified run wrapper
+            start_time = time.time()
             output = run_command(cmd, cwd=base_dir)
+            elapsed = time.time() - start_time
+            
             if not output:
-                print(f"    FAILED")
+                print(f" FAILED (Command error)")
                 results[(bench_name, config_name)] = ("ERR", "ERR", "ERR")
                 continue
                 
             ipc, mr, cycles = parse_output(output)
-            print(f"    Result: Cycles={cycles}, IPC={ipc}, MR={mr}")
-            results[(bench_name, config_name)] = (ipc, mr, cycles)
+            
+            if cycles == "N/A":
+                print(f" FAILED (Parse error)")
+                results[(bench_name, config_name)] = ("ERR", "ERR", "ERR")
+            else:
+                print(f" Done ({elapsed:.1f}s) -> Cycles={cycles}, IPC={ipc}, MR={mr}")
+                results[(bench_name, config_name)] = (ipc, mr, cycles)
 
-    # Print Markdown Table
+    # Print Markdown Table if we ran more than one thing, or just simple output
     print("\n\n# Benchmark Results")
+    
+    # Header 1: Configs
+    # Table Structure: | Benchmark | Cycles (BTB) | MR (BTB) | Cycles (GShare) | MR (GShare) | ...
+    
     headers = ["Benchmark"]
     for cfg, _ in configs:
-        headers.append(f"Cycles {cfg}")
+        headers.append(f"Cyc {cfg}")
         headers.append(f"MR {cfg}")
     
     header_line = "| " + " | ".join(headers) + " |"
@@ -98,7 +147,7 @@ def main():
         row = [f"`{bench_name}`"]
         for config_name, _ in configs:
             ipc, mr, cycles = results.get((bench_name, config_name), ("-", "-", "-"))
-            if cycles != "ERR":
+            if cycles != "ERR" and cycles != "N/A" and cycles != "-":
                 # Format cycles with commas
                 try: 
                     cycles_fmt = f"{int(cycles):,}"

@@ -8,16 +8,13 @@ import chisel3._
 import chisel3.util._
 import riscv.Parameters
 
-class PerceptronBlackParrotPredictor(entries: Int = 16, historyLength: Int = 20) extends BaseBranchPredictor(entries) {
+class PerceptronBlackParrotPredictor(entries: Int = 64, historyLength: Int = 20) extends BaseBranchPredictor(entries) {
   // Configurable parameters
   val weightWidth = 8
   val threshold = (1.93 * historyLength + 14).toInt // Typical threshold formula
   val indexBits = log2Ceil(entries)
 
-  // Perceptron Table: Each entry is a vector of weights
-  // Dimensions: [entries][historyLength + 1] (weights + bias)
-  // We flatten this to a 1D vector of Reg(Vec(SInt)) for easier Chisel handling or use 2D Vec
-  // Using 2D Vec: weights[index][weight_idx]
+  // Perceptron Table
   val weights = RegInit(VecInit(Seq.fill(entries)(VecInit(Seq.fill(historyLength + 1)(0.S(weightWidth.W))))))
 
   // Global History Register
@@ -25,20 +22,13 @@ class PerceptronBlackParrotPredictor(entries: Int = 16, historyLength: Int = 20)
 
   // Hash PC to get table index
   def getIndex(pc: UInt): UInt = {
-    // Simple hash: PC bits xor history lower bits (optional) or just PC
-    // Standard Perceptron usually indexes by PC mod N
+    // Hash: PC bits (no hashing, per diagram)
     if (indexBits > 0) pc(indexBits + 1, 2) else 0.U
   }
 
   val pred_index = getIndex(io.pc)
   
-  // Calculate dot product: w0 + w1*h1 + ... + wn*hn
-  // Since history bits are 0/1, effectively we sum/subtract weights
-  // x_i = 1 if taken (history bit=1), -1 if not taken (history bit=0)
-  // dot_product = bias + sum(weight[i] * (if hist[i] else -1))
-  
-  // We need to compute this partially in parallel or use an adder tree
-  // For small historyLength (20), a simple summation loop in Chisel generation is fine
+  // Calculate dot product
   val dot_product = Wire(SInt((weightWidth + log2Ceil(historyLength + 1) + 1).W))
   
   val current_weights = weights(pred_index)
@@ -61,29 +51,6 @@ class PerceptronBlackParrotPredictor(entries: Int = 16, historyLength: Int = 20)
   // Train if misprediction OR dot product magnitude is below threshold (weak prediction)
   val update_index = getIndex(io.update_pc)
   val update_weights = weights(update_index)
-  
-  // Re-calculate dot product (y) for update stage? 
-  // Ideally we should forward 'y' from prediction stage, but that requires pipelining.
-  // In this simple CPU, updates happen in ID stage, prediction in IF/ID.
-  // We can re-calculate y using the OLD history (which we might not have perfectly tracked if updated in between?)
-  // Actually, 'history' is updated speculatively or in commit?
-  // In this simple predictor, history is just a register.
-  
-  // Wait, `history` in `GShare` is updated in `update_valid`.
-  // Here we should probably use the history that made the prediction?
-  // For simplicity (and since `update_task` usually comes shortly after), we use current history or we assume history hasn't shifted yet?
-  // Actually, `history` is updated in `when(io.update_valid)`.
-  // So the history at update time is the "correct" history (including the branch being updated? No, before?)
-  
-  // Let's assume standard behavior: Update history with the NEW outcome.
-  // Training uses the OLD history (history before this branch outcome).
-  // We need the history vector used for prediction.
-  // But strictly storing it for every branch is complex.
-  // Approximation: Use current history (which matches `update_pc` context approximately).
-  // But wait, update happens later.
-  
-  // Correct method: Shift history AFTER using it for training.
-  // So we use `history` as "past history" for training, then append `update_taken`.
   
   // Re-calculate y_out for training check
   val train_y = Wire(SInt((weightWidth + log2Ceil(historyLength + 1) + 1).W))

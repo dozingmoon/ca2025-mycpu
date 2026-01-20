@@ -42,11 +42,13 @@ import riscv.Parameters
  * @param trainingThreshold Threshold for training (train if |sum| ≤ threshold)
  */
 class PerceptronTinyTapeoutPredictor(
-    entries: Int = 8,
-    historyLength: Int = 7,
+    entries: Int = 64,
+    historyLength: Int = 20,
     weightBits: Int = 8,
-    trainingThreshold: Int = 15
+    useHashing: Boolean = true
 ) extends BaseBranchPredictor(entries) {
+  // Threshold formula from Jimenez: 1.93 * h + 14
+  val trainingThreshold = (1.93 * historyLength + 14).toInt
   // entries parameter is used as numPerceptrons
   val numPerceptrons = entries
   require(isPow2(numPerceptrons), "numPerceptrons must be power of 2")
@@ -82,8 +84,18 @@ class PerceptronTinyTapeoutPredictor(
   val historyBuffer = RegInit(0.U(historyLength.W))
 
   // Index extraction from PC: use bits above word alignment
-  // PC[indexBits+1:2] gives word-aligned index
-  def getIndex(pc: UInt): UInt = pc(indexBits + 1, 2)
+  // Hash: PC bits xor history lower bits
+  def getIndex(pc: UInt): UInt = {
+    if (indexBits > 0) {
+      val pcBits = pc(indexBits + 1, 2)
+      if (useHashing) {
+        val histBits = historyBuffer(indexBits - 1, 0)
+        pcBits ^ histBits
+      } else {
+        pcBits
+      }
+    } else 0.U
+  }
 
   // ========== Prediction Logic (Combinational) ==========
 
@@ -163,8 +175,8 @@ class PerceptronTinyTapeoutPredictor(
       }
     }
 
-    // Update global history buffer: shift in new outcome
-    historyBuffer := Cat(io.update_taken, historyBuffer(historyLength - 1, 1))
+    // Update global history buffer: shift in new outcome (Newest at LSB)
+    historyBuffer := Cat(historyBuffer(historyLength - 2, 0), io.update_taken)
   }
 
   // ========== Helper Functions ==========

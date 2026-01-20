@@ -1,0 +1,351 @@
+[info] welcome to sbt 1.10.7 (Temurin Java 1.8.0_472)
+[info] loading project definition from /home/jctai/Projects/ca2025-mycpu/4-soc/project
+[info] set current project to root-4-soc (in build file:/home/jctai/Projects/ca2025-mycpu/4-soc/)
+[info] Executing in batch mode. For better performance use sbt's shell
+[info] compiling 45 Scala sources to /home/jctai/Projects/ca2025-mycpu/4-soc/target/scala-2.12/classes ...
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/board/verilator/Top.scala:11:8: not found: object chisel3
+[error] import chisel3._
+[error]        ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/board/verilator/Top.scala:12:8: not found: object chisel3
+[error] import chisel3.stage.ChiselStage
+[error]        ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/board/verilator/Top.scala:19:19: not found: type Module
+[error] class Top extends Module {
+[error]                   ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/board/verilator/Top.scala:20:12: not found: value IO
+[error]   val io = IO(new Bundle {
+[error]            ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/board/verilator/Top.scala:20:19: not found: type Bundle
+[error]   val io = IO(new Bundle {
+[error]                   ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/board/verilator/Top.scala:21:28: not found: value Input
+[error]     val signal_interrupt = Input(Bool())
+[error]                            ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/board/verilator/Top.scala:21:34: not found: value Bool
+[error]     val signal_interrupt = Input(Bool())
+[error]                                  ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/board/verilator/Top.scala:24:31: not found: value Output
+[error]     val instruction_address = Output(UInt(Parameters.AddrWidth))
+[error]                               ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/board/verilator/Top.scala:24:38: not found: value UInt
+[error]     val instruction_address = Output(UInt(Parameters.AddrWidth))
+[error]                                      ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/riscv/Parameters.scala:7:8: not found: object chisel3
+[error] import chisel3._
+[error]        ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/riscv/Parameters.scala:8:8: not found: object chisel3
+[error] import chisel3.util._
+[error]        ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/riscv/Parameters.scala:32:28: value W is not a member of Int
+[error]   val AddrWidth = AddrBits.W
+[error]                            ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/board/verilator/Top.scala:25:31: not found: value Input
+[error]     val instruction         = Input(UInt(Parameters.InstructionWidth))
+[error]                               ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/board/verilator/Top.scala:25:37: not found: value UInt
+[error]     val instruction         = Input(UInt(Parameters.InstructionWidth))
+[error]                                     ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/riscv/Parameters.scala:35:42: value W is not a member of Int
+[error]   val InstructionWidth = InstructionBits.W
+[error]                                          ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/board/verilator/Top.scala:26:31: not found: value Input
+[error]     val instruction_valid   = Input(Bool())
+[error]                               ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/board/verilator/Top.scala:26:37: not found: value Bool
+[error]     val instruction_valid   = Input(Bool())
+[error]                                     ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/bus/AXI4Lite.scala:7:8: not found: object chisel3
+[error] import chisel3._
+[error]        ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/bus/AXI4Lite.scala:9:8: not found: object chisel3
+[error] import chisel3.util._
+[error]        ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/bus/AXI4Lite.scala:102:67: not found: type Bundle
+[error] class AXI4LiteSlaveBundle(addrWidth: Int, dataWidth: Int) extends Bundle {
+[error]                                                                   ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/board/verilator/Top.scala:31:27: not found: value Input
+[error]     val vga_pixclk      = Input(Clock())     // VGA pixel clock (31.5 MHz)
+[error]                           ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/board/verilator/Top.scala:31:33: not found: value Clock
+[error]     val vga_pixclk      = Input(Clock())     // VGA pixel clock (31.5 MHz)
+[error]                                 ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/board/verilator/Top.scala:32:27: not found: value Output
+[error]     val vga_hsync       = Output(Bool())     // Horizontal sync
+[error]                           ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/board/verilator/Top.scala:32:34: not found: value Bool
+[error]     val vga_hsync       = Output(Bool())     // Horizontal sync
+[error]                                  ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/board/verilator/Top.scala:33:27: not found: value Output
+[error]     val vga_vsync       = Output(Bool())     // Vertical sync
+[error]                           ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/board/verilator/Top.scala:33:34: not found: value Bool
+[error]     val vga_vsync       = Output(Bool())     // Vertical sync
+[error]                                  ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/board/verilator/Top.scala:34:27: not found: value Output
+[error]     val vga_rrggbb      = Output(UInt(6.W))  // 6-bit color output
+[error]                           ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/board/verilator/Top.scala:34:34: not found: value UInt
+[error]     val vga_rrggbb      = Output(UInt(6.W))  // 6-bit color output
+[error]                                  ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/board/verilator/Top.scala:34:41: value W is not a member of Int
+[error]     val vga_rrggbb      = Output(UInt(6.W))  // 6-bit color output
+[error]                                         ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/board/verilator/Top.scala:35:27: not found: value Output
+[error]     val vga_activevideo = Output(Bool())     // Active display region
+[error]                           ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/board/verilator/Top.scala:35:34: not found: value Bool
+[error]     val vga_activevideo = Output(Bool())     // Active display region
+[error]                                  ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/board/verilator/Top.scala:36:27: not found: value Output
+[error]     val vga_x_pos       = Output(UInt(10.W)) // Current pixel X position
+[error]                           ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/board/verilator/Top.scala:36:34: not found: value UInt
+[error]     val vga_x_pos       = Output(UInt(10.W)) // Current pixel X position
+[error]                                  ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/board/verilator/Top.scala:36:42: value W is not a member of Int
+[error]     val vga_x_pos       = Output(UInt(10.W)) // Current pixel X position
+[error]                                          ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/board/verilator/Top.scala:37:27: not found: value Output
+[error]     val vga_y_pos       = Output(UInt(10.W)) // Current pixel Y position
+[error]                           ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/board/verilator/Top.scala:37:34: not found: value UInt
+[error]     val vga_y_pos       = Output(UInt(10.W)) // Current pixel Y position
+[error]                                  ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/board/verilator/Top.scala:37:42: value W is not a member of Int
+[error]     val vga_y_pos       = Output(UInt(10.W)) // Current pixel Y position
+[error]                                          ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/board/verilator/Top.scala:40:26: not found: value Output
+[error]     val uart_txd       = Output(UInt(1.W)) // UART TX data
+[error]                          ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/board/verilator/Top.scala:40:33: not found: value UInt
+[error]     val uart_txd       = Output(UInt(1.W)) // UART TX data
+[error]                                 ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/board/verilator/Top.scala:40:40: value W is not a member of Int
+[error]     val uart_txd       = Output(UInt(1.W)) // UART TX data
+[error]                                        ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/board/verilator/Top.scala:41:26: not found: value Input
+[error]     val uart_rxd       = Input(UInt(1.W))  // UART RX data
+[error]                          ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/board/verilator/Top.scala:41:32: not found: value UInt
+[error]     val uart_rxd       = Input(UInt(1.W))  // UART RX data
+[error]                                ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/board/verilator/Top.scala:41:39: value W is not a member of Int
+[error]     val uart_rxd       = Input(UInt(1.W))  // UART RX data
+[error]                                       ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/board/verilator/Top.scala:42:26: not found: value Output
+[error]     val uart_interrupt = Output(Bool())    // UART interrupt signal
+[error]                          ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/board/verilator/Top.scala:42:33: not found: value Bool
+[error]     val uart_interrupt = Output(Bool())    // UART interrupt signal
+[error]                                 ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/board/verilator/Top.scala:44:38: not found: value Input
+[error]     val cpu_debug_read_address     = Input(UInt(Parameters.PhysicalRegisterAddrWidth))
+[error]                                      ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/board/verilator/Top.scala:44:44: not found: value UInt
+[error]     val cpu_debug_read_address     = Input(UInt(Parameters.PhysicalRegisterAddrWidth))
+[error]                                            ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/riscv/Parameters.scala:44:35: not found: value log2Up
+[error]   val PhysicalRegisterAddrBits  = log2Up(PhysicalRegisters) // 5 bits
+[error]                                   ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/board/verilator/Top.scala:45:38: not found: value Output
+[error]     val cpu_debug_read_data        = Output(UInt(Parameters.DataWidth))
+[error]                                      ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/board/verilator/Top.scala:45:45: not found: value UInt
+[error]     val cpu_debug_read_data        = Output(UInt(Parameters.DataWidth))
+[error]                                             ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/riscv/Parameters.scala:37:35: value W is not a member of Int
+[error]   val DataWidth        = DataBits.W
+[error]                                   ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/board/verilator/Top.scala:46:38: not found: value Input
+[error]     val cpu_csr_debug_read_address = Input(UInt(Parameters.CSRRegisterAddrWidth))
+[error]                                      ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/board/verilator/Top.scala:46:44: not found: value UInt
+[error]     val cpu_csr_debug_read_address = Input(UInt(Parameters.CSRRegisterAddrWidth))
+[error]                                            ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/riscv/Parameters.scala:49:50: value W is not a member of Int
+[error]   val CSRRegisterAddrWidth = CSRRegisterAddrBits.W
+[error]                                                  ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/board/verilator/Top.scala:47:38: not found: value Output
+[error]     val cpu_csr_debug_read_data    = Output(UInt(Parameters.DataWidth))
+[error]                                      ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/board/verilator/Top.scala:47:45: not found: value UInt
+[error]     val cpu_csr_debug_read_data    = Output(UInt(Parameters.DataWidth))
+[error]                                             ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/board/verilator/Top.scala:51:19: not found: value Module
+[error]   val mem_slave = Module(new AXI4LiteSlave(Parameters.AddrBits, Parameters.DataBits))
+[error]                   ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/bus/AXI4Lite.scala:130:61: not found: type Module
+[error] class AXI4LiteSlave(addrWidth: Int, dataWidth: Int) extends Module {
+[error]                                                             ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/board/verilator/Top.scala:55:13: not found: value Module
+[error]   val vga = Module(new VGA)
+[error]             ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/peripheral/VGA.scala:9:8: not found: object chisel3
+[error] import chisel3._
+[error]        ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/peripheral/VGA.scala:10:8: not found: object chisel3
+[error] import chisel3.util._
+[error]        ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/peripheral/VGA.scala:34:19: not found: type Module
+[error] class VGA extends Module {
+[error]                   ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/board/verilator/Top.scala:58:14: not found: value Module
+[error]   val uart = Module(new Uart(frequency = 50000000, baudRate = 115200))
+[error]              ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/peripheral/UART.scala:9:8: not found: object chisel3
+[error] import chisel3._
+[error]        ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/peripheral/UART.scala:10:8: not found: object chisel3
+[error] import chisel3.util._
+[error]        ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/peripheral/UART.scala:198:51: not found: type Module
+[error] class Uart(frequency: Int, baudRate: Int) extends Module {
+[error]                                                   ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/board/verilator/Top.scala:60:21: not found: value Module
+[error]   val cpu         = Module(new CPU)
+[error]                     ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/riscv/core/CPU.scala:8:8: not found: object chisel3
+[error] import chisel3._
+[error]        ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/riscv/core/CPU.scala:13:80: not found: type Module
+[error] class CPU(val implementation: Int = ImplementationType.FiveStageFinal) extends Module {
+[error]                                                                                ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/board/verilator/Top.scala:61:21: not found: value Module
+[error]   val dummy       = Module(new DummySlave)
+[error]                     ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/peripheral/DummySlave.scala:9:8: not found: object chisel3
+[error] import chisel3._
+[error]        ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/peripheral/DummySlave.scala:25:26: not found: type Module
+[error] class DummySlave extends Module {
+[error]                          ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/board/verilator/Top.scala:62:21: not found: value Module
+[error]   val bus_arbiter = Module(new BusArbiter)
+[error]                     ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/bus/BusArbiter.scala:7:8: not found: object chisel3
+[error] import chisel3._
+[error]        ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/bus/BusArbiter.scala:27:26: not found: type Module
+[error] class BusArbiter extends Module {
+[error]                          ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/board/verilator/Top.scala:63:21: not found: value Module
+[error]   val bus_switch  = Module(new BusSwitch)
+[error]                     ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/bus/BusSwitch.scala:7:8: not found: object chisel3
+[error] import chisel3._
+[error]        ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/bus/BusSwitch.scala:8:8: not found: object chisel3
+[error] import chisel3.util._
+[error]        ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/bus/BusSwitch.scala:42:25: not found: type Module
+[error] class BusSwitch extends Module {
+[error]                         ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/board/verilator/Top.scala:119:8: not found: type ChiselStage
+[error]   (new ChiselStage).emitVerilog(
+[error]        ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/bus/AXI4Lite.scala:8:8: not found: object chisel3
+[error] import chisel3.experimental.ChiselEnum
+[error]        ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/bus/AXI4Lite.scala:37:59: not found: type Bundle
+[error] class AXI4LiteWriteAddressChannel(addrWidth: Int) extends Bundle {
+[error]                                                           ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/bus/AXI4Lite.scala:38:17: not found: value Output
+[error]   val AWVALID = Output(Bool())
+[error]                 ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/bus/AXI4Lite.scala:38:24: not found: value Bool
+[error]   val AWVALID = Output(Bool())
+[error]                        ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/bus/AXI4Lite.scala:39:17: not found: value Input
+[error]   val AWREADY = Input(Bool())
+[error]                 ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/bus/AXI4Lite.scala:39:23: not found: value Bool
+[error]   val AWREADY = Input(Bool())
+[error]                       ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/bus/AXI4Lite.scala:40:17: not found: value Output
+[error]   val AWADDR  = Output(UInt(addrWidth.W))
+[error]                 ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/bus/AXI4Lite.scala:40:24: not found: value UInt
+[error]   val AWADDR  = Output(UInt(addrWidth.W))
+[error]                        ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/bus/AXI4Lite.scala:40:39: value W is not a member of Int
+[error]   val AWADDR  = Output(UInt(addrWidth.W))
+[error]                                       ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/bus/AXI4Lite.scala:41:17: not found: value Output
+[error]   val AWPROT  = Output(UInt(AXI4Lite.protWidth.W))
+[error]                 ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/bus/AXI4Lite.scala:41:24: not found: value UInt
+[error]   val AWPROT  = Output(UInt(AXI4Lite.protWidth.W))
+[error]                        ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/bus/AXI4Lite.scala:41:48: value W is not a member of Int
+[error]   val AWPROT  = Output(UInt(AXI4Lite.protWidth.W))
+[error]                                                ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/bus/AXI4Lite.scala:44:56: not found: type Bundle
+[error] class AXI4LiteWriteDataChannel(dataWidth: Int) extends Bundle {
+[error]                                                        ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/bus/AXI4Lite.scala:45:16: not found: value Output
+[error]   val WVALID = Output(Bool())
+[error]                ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/bus/AXI4Lite.scala:45:23: not found: value Bool
+[error]   val WVALID = Output(Bool())
+[error]                       ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/bus/AXI4Lite.scala:46:16: not found: value Input
+[error]   val WREADY = Input(Bool())
+[error]                ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/bus/AXI4Lite.scala:46:22: not found: value Bool
+[error]   val WREADY = Input(Bool())
+[error]                      ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/bus/AXI4Lite.scala:47:16: not found: value Output
+[error]   val WDATA  = Output(UInt(dataWidth.W))
+[error]                ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/bus/AXI4Lite.scala:47:23: not found: value UInt
+[error]   val WDATA  = Output(UInt(dataWidth.W))
+[error]                       ^
+[error] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/bus/AXI4Lite.scala:47:38: value W is not a member of Int
+[error]   val WDATA  = Output(UInt(dataWidth.W))
+[error]                                      ^
+[warn] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/riscv/core/ALUControl.scala:9:19: imported `InstructionTypes` is permanently hidden by definition of object InstructionTypes in package core
+[warn] import riscv.core.InstructionTypes
+[warn]                   ^
+[warn] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/riscv/core/ALUControl.scala:10:19: imported `Instructions` is permanently hidden by definition of object Instructions in package core
+[warn] import riscv.core.Instructions
+[warn]                   ^
+[warn] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/riscv/core/ALUControl.scala:11:19: imported `InstructionsTypeI` is permanently hidden by definition of object InstructionsTypeI in package core
+[warn] import riscv.core.InstructionsTypeI
+[warn]                   ^
+[warn] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/riscv/core/ALUControl.scala:12:19: imported `InstructionsTypeR` is permanently hidden by definition of object InstructionsTypeR in package core
+[warn] import riscv.core.InstructionsTypeR
+[warn]                   ^
+[warn] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/riscv/core/EX2MEM.scala:8:19: imported `PipelineRegister` is permanently hidden by definition of object PipelineRegister in package core
+[warn] import riscv.core.PipelineRegister
+[warn]                   ^
+[warn] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/riscv/core/Execute.scala:9:19: imported `ALU` is permanently hidden by definition of class ALU in package core
+[warn] import riscv.core.ALU
+[warn]                   ^
+[warn] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/riscv/core/Execute.scala:10:19: imported `ALUControl` is permanently hidden by definition of class ALUControl in package core
+[warn] import riscv.core.ALUControl
+[warn]                   ^
+[warn] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/riscv/core/ID2EX.scala:8:19: imported `PipelineRegister` is permanently hidden by definition of object PipelineRegister in package core
+[warn] import riscv.core.PipelineRegister
+[warn]                   ^
+[warn] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/riscv/core/IF2ID.scala:8:19: imported `PipelineRegister` is permanently hidden by definition of object PipelineRegister in package core
+[warn] import riscv.core.PipelineRegister
+[warn]                   ^
+[warn] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/riscv/core/MEM2WB.scala:8:19: imported `PipelineRegister` is permanently hidden by definition of object PipelineRegister in package core
+[warn] import riscv.core.PipelineRegister
+[warn]                   ^
+[warn] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/riscv/core/MemoryAccess.scala:9:19: imported `BusBundle` is permanently hidden by definition of class BusBundle in package core
+[warn] import riscv.core.BusBundle
+[warn]                   ^
+[warn] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/riscv/core/PipelinedCPU.scala:9:19: imported `CPUBundle` is permanently hidden by definition of class CPUBundle in package core
+[warn] import riscv.core.CPUBundle
+[warn]                   ^
+[warn] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/riscv/core/PipelinedCPU.scala:10:19: imported `CSR` is permanently hidden by definition of class CSR in package core
+[warn] import riscv.core.CSR
+[warn]                   ^
+[warn] /home/jctai/Projects/ca2025-mycpu/4-soc/src/main/scala/riscv/core/PipelinedCPU.scala:11:19: imported `RegisterFile` is permanently hidden by definition of class RegisterFile in package core
+[warn] import riscv.core.RegisterFile
+[warn]                   ^
+[warn] 14 warnings found
+[error] 100 errors found
+[error] (Compile / compileIncremental) Compilation failed
+[error] Total time: 4 s, completed Jan 20, 2026 1:29:58 PM

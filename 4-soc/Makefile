@@ -11,7 +11,7 @@ include ../common/build.mk
 MODEL ?= none
 FIB_N ?= 20
 SIZE ?= 10
-SIM_TIME ?= 1000000000
+SIM_TIME ?= 1000000
 
 ifeq ($(MODEL),per-t)
 	SBT_ARGS := -DusePerceptronT=true -DusePerceptronB=false -DuseGShare=false -DuseTwoLevel=false
@@ -80,6 +80,11 @@ sim_pattern:
 	@$(MAKE) -C csrc clean
 	@$(MAKE) -C csrc pattern.asmbin
 	make sim SIM_ARGS="-instruction ../../../csrc/pattern.asmbin" SIM_VCD=$(SIM_VCD) SIM_TIME=$(SIM_TIME)
+
+sim_branchstress:
+	@$(MAKE) -C csrc clean
+	@$(MAKE) -C csrc branchstress.asmbin
+	make sim SIM_ARGS="-instruction ../../../csrc/branchstress.asmbin" SIM_VCD=$(SIM_VCD) SIM_TIME=$(SIM_TIME)
 
 check-vga: verilator
 	@echo "🔄 Building nyancat binary..."

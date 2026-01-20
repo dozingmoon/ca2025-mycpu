@@ -17,7 +17,7 @@ FIB_N ?= 20
 SIZE ?= 10
 
 # Program targets (add new programs here)
-PROGRAMS := nyancat uart shell bubblesort dijkstra shellsort isort parser chess pattern
+PROGRAMS := nyancat uart shell bubblesort dijkstra shellsort isort parser chess pattern branchstress
 BINARIES := $(PROGRAMS:%=%.asmbin)
 DUMPS := $(PROGRAMS:%=%.dump)
 
@@ -84,6 +84,10 @@ chess.elf: chess.c init.o link.lds
 pattern.elf: pattern.c init.o link.lds
 	$(CC) $(CFLAGS) -c -o pattern.o pattern.c
 	$(CROSS_COMPILE)ld -o pattern.elf -T link.lds $(LDFLAGS) pattern.o init.o
+
+branchstress.elf: branchstress.c init.o link.lds
+	$(CC) $(CFLAGS) -c -o branchstress.o branchstress.c
+	$(CROSS_COMPILE)ld -o branchstress.elf -T link.lds $(LDFLAGS) branchstress.o init.o
 
 init.o: init.S
 	$(AS) -R $(ASFLAGS) -o $@ $<

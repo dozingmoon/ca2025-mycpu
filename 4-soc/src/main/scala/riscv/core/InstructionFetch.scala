@@ -125,7 +125,7 @@ class InstructionFetch extends Module {
   val usePerceptronB = sys.props.getOrElse("usePerceptronB", "false").toBoolean
 
   // Instantiate Shared BTB (Target Storage)
-  val btb = Module(new BranchTargetBuffer(entries = 16))
+  val btb = Module(new BranchTargetBuffer(entries = 64))
   btb.io.pc := pc
   btb.io.update_valid  := io.btb_update_valid
   btb.io.update_pc     := io.btb_update_pc
@@ -137,7 +137,7 @@ class InstructionFetch extends Module {
   // - Others: Use specified predictor
   // Note: Check specific predictors first, useNone is the fallback
   val pred_taken = if (usePerceptronB) {
-    val predictor = Module(new PerceptronBlackParrotPredictor(entries = 16, historyLength = 20))
+    val predictor = Module(new PerceptronBlackParrotPredictor(entries = 64, historyLength = 20))
     predictor.io.pc := pc
     predictor.io.update_valid  := io.btb_update_valid
     predictor.io.update_pc     := io.btb_update_pc
@@ -145,7 +145,7 @@ class InstructionFetch extends Module {
     predictor.io.update_taken  := io.btb_update_taken
     predictor.io.predicted_taken && btb.io.predicted_taken
   } else if (usePerceptronT) {
-    val predictor = Module(new PerceptronTinyTapeoutPredictor(entries = 16, historyLength = 20))
+    val predictor = Module(new PerceptronTinyTapeoutPredictor(entries = 64, historyLength = 20))
     predictor.io.pc := pc
     predictor.io.update_valid  := io.btb_update_valid
     predictor.io.update_pc     := io.btb_update_pc
@@ -243,10 +243,13 @@ class InstructionFetch extends Module {
   val prev_jump_addr = RegNext(io.jump_address_id, 0.U)
 
   // Latch jump when stall blocks it
-  // Check both current cycle (normal case) and previous cycle (flush race case)
-  when(io.stall_flag_ctrl && (io.jump_flag_id || prev_jump_flag)) {
+  // We only need to latch if we haven't already taken the jump (via BTB prediction)
+  // and if the stall is preventing the jump from being taken immediately.
+  // We do NOT use prev_jump_flag because IF2ID output is stable during stall,
+  // so jump_flag_id will remain asserted as long as the instruction is in ID.
+  when(io.stall_flag_ctrl && io.jump_flag_id && !io.btb_correct_prediction) {
     pending_jump      := true.B
-    pending_jump_addr := Mux(io.jump_flag_id, io.jump_address_id, prev_jump_addr)
+    pending_jump_addr := io.jump_address_id
   }.elsewhen(!io.stall_flag_ctrl) {
     // Clear pending jump when we can take it (or when there's no jump)
     pending_jump := false.B

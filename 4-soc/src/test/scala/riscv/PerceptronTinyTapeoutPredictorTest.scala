@@ -13,7 +13,7 @@ class PerceptronTinyTapeoutPredictorTest extends AnyFlatSpec with ChiselScalates
   behavior.of("Perceptron Branch Predictor")
 
   it should "initially predict not taken (untrained weights are zero)" in {
-    test(new PerceptronTinyTapeoutPredictor()).withAnnotations(TestAnnotations.annos) { dut =>
+    test(new PerceptronTinyTapeoutPredictor(entries = 8, useHashing = false)).withAnnotations(TestAnnotations.annos) { dut =>
       // Query an address - all weights are 0, sum = 0, should predict taken (sum >= 0)
       // Actually with all zeros, sum = 0 which is >= 0, so predicts taken
       dut.io.pc.poke(0x1000.U)
@@ -26,7 +26,7 @@ class PerceptronTinyTapeoutPredictorTest extends AnyFlatSpec with ChiselScalates
   }
 
   it should "learn to predict taken after training with taken branches" in {
-    test(new PerceptronTinyTapeoutPredictor()).withAnnotations(TestAnnotations.annos) { dut =>
+    test(new PerceptronTinyTapeoutPredictor(entries = 8, useHashing = false)).withAnnotations(TestAnnotations.annos) { dut =>
       val branchPC = 0x1000L
 
       // Train with "branch taken" multiple times
@@ -47,7 +47,7 @@ class PerceptronTinyTapeoutPredictorTest extends AnyFlatSpec with ChiselScalates
   }
 
   it should "learn to predict not taken after training with not-taken branches" in {
-    test(new PerceptronTinyTapeoutPredictor()).withAnnotations(TestAnnotations.annos) { dut =>
+    test(new PerceptronTinyTapeoutPredictor(entries = 8, useHashing = false)).withAnnotations(TestAnnotations.annos) { dut =>
       val branchPC = 0x1000L
 
       // Train with "branch not taken" multiple times
@@ -68,7 +68,7 @@ class PerceptronTinyTapeoutPredictorTest extends AnyFlatSpec with ChiselScalates
   }
 
   it should "adapt to changing patterns" in {
-    test(new PerceptronTinyTapeoutPredictor()).withAnnotations(TestAnnotations.annos) { dut =>
+    test(new PerceptronTinyTapeoutPredictor(entries = 8, useHashing = false)).withAnnotations(TestAnnotations.annos) { dut =>
       val branchPC = 0x1000L
 
       // First train with "taken" pattern
@@ -102,7 +102,7 @@ class PerceptronTinyTapeoutPredictorTest extends AnyFlatSpec with ChiselScalates
   }
 
   it should "handle different perceptron indices (different PC addresses)" in {
-    test(new PerceptronTinyTapeoutPredictor()).withAnnotations(TestAnnotations.annos) { dut =>
+    test(new PerceptronTinyTapeoutPredictor(entries = 8, useHashing = false)).withAnnotations(TestAnnotations.annos) { dut =>
       val branchPC1 = 0x1000L // Index = 0
       val branchPC2 = 0x1010L // Index = 4 (different perceptron)
 
@@ -136,7 +136,7 @@ class PerceptronTinyTapeoutPredictorTest extends AnyFlatSpec with ChiselScalates
   }
 
   it should "update history buffer correctly" in {
-    test(new PerceptronTinyTapeoutPredictor()).withAnnotations(TestAnnotations.annos) { dut =>
+    test(new PerceptronTinyTapeoutPredictor(entries = 8, useHashing = false)).withAnnotations(TestAnnotations.annos) { dut =>
       val branchPC = 0x1000L
 
       // Train with alternating pattern: T, N, T, N, ...
