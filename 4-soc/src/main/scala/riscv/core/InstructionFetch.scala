@@ -125,7 +125,7 @@ class InstructionFetch extends Module {
   val usePerceptronB = sys.props.getOrElse("usePerceptronB", "false").toBoolean
 
   // Instantiate Shared BTB (Target Storage)
-  val btb = Module(new BranchTargetBuffer(entries = 64))
+  val btb = Module(new BranchTargetBuffer(entries = 1024)) // ~7KB
   btb.io.pc := pc
   btb.io.update_valid  := io.btb_update_valid
   btb.io.update_pc     := io.btb_update_pc
@@ -137,7 +137,7 @@ class InstructionFetch extends Module {
   // - Others: Use specified predictor
   // Note: Check specific predictors first, useNone is the fallback
   val pred_taken = if (usePerceptronB) {
-    val predictor = Module(new PerceptronBlackParrotPredictor(entries = 64, historyLength = 20))
+    val predictor = Module(new PerceptronBlackParrotPredictor(entries = 256, historyLength = 31)) // ~8KB
     predictor.io.pc := pc
     predictor.io.update_valid  := io.btb_update_valid
     predictor.io.update_pc     := io.btb_update_pc
@@ -145,7 +145,7 @@ class InstructionFetch extends Module {
     predictor.io.update_taken  := io.btb_update_taken
     predictor.io.predicted_taken && btb.io.predicted_taken
   } else if (usePerceptronT) {
-    val predictor = Module(new PerceptronTinyTapeoutPredictor(entries = 64, historyLength = 20))
+    val predictor = Module(new PerceptronTinyTapeoutPredictor(entries = 256, historyLength = 31)) // ~8KB
     predictor.io.pc := pc
     predictor.io.update_valid  := io.btb_update_valid
     predictor.io.update_pc     := io.btb_update_pc
@@ -153,7 +153,7 @@ class InstructionFetch extends Module {
     predictor.io.update_taken  := io.btb_update_taken
     predictor.io.predicted_taken && btb.io.predicted_taken
   } else if (useTwoLevel) {
-    val predictor = Module(new TwoLevelLocalPredictor(entries = 64, historyLength = 10))
+    val predictor = Module(new TwoLevelLocalPredictor(entries = 2048, historyLength = 14)) // ~8KB
     predictor.io.pc := pc
     predictor.io.update_valid  := io.btb_update_valid
     predictor.io.update_pc     := io.btb_update_pc
@@ -161,7 +161,7 @@ class InstructionFetch extends Module {
     predictor.io.update_taken  := io.btb_update_taken
     predictor.io.predicted_taken && btb.io.predicted_taken
   } else if (useGShare) {
-    val predictor = Module(new GSharePredictor(entries = 16, historyLength = 36, phtIndexBits = 6))
+    val predictor = Module(new GSharePredictor(entries = 32768, historyLength = 30, phtIndexBits = 15)) // ~8KB
     predictor.io.pc := pc
     predictor.io.update_valid  := io.btb_update_valid
     predictor.io.update_pc     := io.btb_update_pc
@@ -173,7 +173,7 @@ class InstructionFetch extends Module {
     false.B
   } else {
     // Default: BimodalPredictor (for btb mode)
-    val predictor = Module(new BimodalPredictor(entries = 16))
+    val predictor = Module(new BimodalPredictor(entries = 32768)) // ~8KB
     predictor.io.pc := pc
     predictor.io.update_valid  := io.btb_update_valid
     predictor.io.update_pc     := io.btb_update_pc

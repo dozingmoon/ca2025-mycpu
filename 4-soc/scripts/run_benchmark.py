@@ -97,12 +97,22 @@ def main():
     for config_name, config_args in configs:
         print(f"\n[{config_name}] Configuration ({config_args})")
         
-        # 1. Clean to ensure recompilation of hardware with new config
-        print(f"  Cleaning build...")
+        # 1. Clean and Build ONCE for this configuration
+        print(f"  Building hardware model...")
         run_command("make clean", cwd=base_dir)
+        # Force build of 'verilator' target to compile the model first
+        build_cmd = f"make {config_args} verilator"
+        run_command(build_cmd, cwd=base_dir)
         
         for bench_name, target, params in benchmarks:
             print(f"  Running {bench_name}...", end="", flush=True)
+            
+            # Use 'verilator' to run the sim using existing binary if possible, 
+            # but standard 'make sim' might depend on Verilator target which triggers check.
+            # Best way: 'make sim' is just: ./check ...
+            # We can use the compiled binary directly or call 'make sim' which shouldn't recompile if deps unchanged.
+            # However, 'make clean' killed obj_dir.
+            # Let's rely on 'make sim' being smart enough if we don't clean inside loop.
             
             cmd = f"make {config_args} {params} {target}"
             # print(f"    Executing: {cmd}")

@@ -47,7 +47,7 @@ verilator:
 		-LDFLAGS "$$(sdl2-config --libs)" && \
 		make -C obj_dir -f VTop.mk
 
-sim: verilator
+sim: 
 	cd verilog/verilator/obj_dir && ./VTop $(if $(SIM_VCD),-vcd ../../../$(SIM_VCD)) -time $(SIM_TIME) $(subst src/main/resources/,../../../src/main/resources/,$(SIM_ARGS))
 
 

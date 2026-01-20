@@ -22,8 +22,12 @@ class PerceptronBlackParrotPredictor(entries: Int = 64, historyLength: Int = 20)
 
   // Hash PC to get table index
   def getIndex(pc: UInt): UInt = {
-    // Hash: PC bits (no hashing, per diagram)
-    if (indexBits > 0) pc(indexBits + 1, 2) else 0.U
+    // Hash: PC bits xor history lower bits
+    if (indexBits > 0) {
+      val pcBits = pc(indexBits + 1, 2)
+      val histBits = history(indexBits - 1, 0)
+      pcBits ^ histBits
+    } else 0.U
   }
 
   val pred_index = getIndex(io.pc)
