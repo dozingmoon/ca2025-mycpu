@@ -5,24 +5,28 @@
 # Include common build utilities
 include ../common/build.mk
 
-# Default GShare enabled (1). Override with make GSHARE=0
-# TWOLEVEL enabled (1) overrides GShare. Override with make TWOLEVEL=1
-# PERCEPTRON_B enabled (1) overrides others.
-GSHARE ?= 1
-TWOLEVEL ?= 0
-PERCEPTRON_B ?= 0
+# Branch predictor model selection
+# Usage: make sim MODEL=gshare|twolevel|per-t|per-b|btb|none
+# Default: none (always predict not taken)
+MODEL ?= none
 FIB_N ?= 20
 SIZE ?= 10
 SIM_TIME ?= 1000000000
 
-ifeq ($(PERCEPTRON_B),1)
-	SBT_ARGS := -DusePerceptronB=true -DuseGShare=false -DuseTwoLevel=false
-else ifeq ($(TWOLEVEL),1)
-	SBT_ARGS := -DuseTwoLevel=true -DuseGShare=false -DusePerceptronB=false
-else ifeq ($(GSHARE),1)
-	SBT_ARGS := -DuseGShare=true -DuseTwoLevel=false -DusePerceptronB=false
+ifeq ($(MODEL),per-t)
+	SBT_ARGS := -DusePerceptronT=true -DusePerceptronB=false -DuseGShare=false -DuseTwoLevel=false
+else ifeq ($(MODEL),per-b)
+	SBT_ARGS := -DusePerceptronB=true -DusePerceptronT=false -DuseGShare=false -DuseTwoLevel=false
+else ifeq ($(MODEL),twolevel)
+	SBT_ARGS := -DuseTwoLevel=true -DuseGShare=false -DusePerceptronT=false -DusePerceptronB=false
+else ifeq ($(MODEL),gshare)
+	SBT_ARGS := -DuseGShare=true -DuseTwoLevel=false -DusePerceptronT=false -DusePerceptronB=false
+else ifeq ($(MODEL),btb)
+	SBT_ARGS := -DuseGShare=false -DuseTwoLevel=false -DusePerceptronT=false -DusePerceptronB=false -DuseNone=false
+else ifeq ($(MODEL),none)
+	SBT_ARGS := -DuseNone=true -DuseGShare=false -DuseTwoLevel=false -DusePerceptronT=false -DusePerceptronB=false
 else
-	SBT_ARGS := -DuseGShare=false -DuseTwoLevel=false -DusePerceptronB=false
+	$(error Unknown MODEL=$(MODEL). Valid options: gshare, twolevel, per-t, per-b, btb, none)
 endif
 
 test:

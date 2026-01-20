@@ -35,9 +35,11 @@ def main():
     # Configurations
     # Format: (Name, ConfigString)
     configs = [
-        ("BTB", "GSHARE=0 TWOLEVEL=0"),
-        ("GShare", "GSHARE=1 TWOLEVEL=0"),
-        ("TwoLevel", "TWOLEVEL=1")
+        ("BTB", "MODEL=btb"),
+        ("GShare", "MODEL=gshare"),
+        ("TwoLevel", "MODEL=twolevel"),
+        ("Per-T", "MODEL=per-t"),
+        ("Per-B", "MODEL=per-b")
     ]
     
     # Benchmarks

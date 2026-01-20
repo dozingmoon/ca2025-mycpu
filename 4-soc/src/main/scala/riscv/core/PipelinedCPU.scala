@@ -523,11 +523,15 @@ class PipelinedCPU extends Module {
   // Flushed instructions (bubbles) have valid=0, so they are not counted.
   csr_regs.io.instruction_retired := mem2wb.io.output_instruction_valid && !mem_stall
 
-  // Branch misprediction: BTB, RAS, or IndirectBTB predicted wrong
-  // Gate with !mem_stall to ensure single-cycle pulse.
-  // - mem_stall: Pipeline frozen (would count same misprediction multiple times)
-  // Note: All three signals already include !branch_hazard gating.
-  csr_regs.io.branch_misprediction := (btb_mispredict || ras_wrong_target || ibtb_wrong_target) && !mem_stall
+  // REAL branch misprediction: direction prediction doesn't match actual outcome
+  // This counts when:
+  // - Predicted taken but actually not taken
+  // - Predicted not taken but actually taken
+  // The prediction is determined by btb_predicted (which comes from the direction predictor)
+  // For RAS/IBTB predicted returns, those also count as "predicted taken"
+  val any_prediction_taken = btb_predicted || ras_predicted || ibtb_predicted
+  val direction_misprediction = is_branch_or_jump && (any_prediction_taken =/= actual_taken) && !id.io.branch_hazard
+  csr_regs.io.branch_misprediction := direction_misprediction && !mem_stall
 
   // Stall type breakdown for detailed performance analysis
   // Stall counters are mutually exclusive to avoid double-counting.

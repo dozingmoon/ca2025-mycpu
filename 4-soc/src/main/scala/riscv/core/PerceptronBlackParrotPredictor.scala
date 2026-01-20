@@ -8,7 +8,7 @@ import chisel3._
 import chisel3.util._
 import riscv.Parameters
 
-class PerceptronBPredictor(entries: Int = 16, historyLength: Int = 20) extends BaseBranchPredictor(entries) {
+class PerceptronBlackParrotPredictor(entries: Int = 16, historyLength: Int = 20) extends BaseBranchPredictor(entries) {
   // Configurable parameters
   val weightWidth = 8
   val threshold = (1.93 * historyLength + 14).toInt // Typical threshold formula

@@ -116,13 +116,13 @@ class InstructionFetch extends Module {
   val pc = RegInit(ProgramCounter.EntryAddress)
 
   // Branch Target Buffer / Predictor
-  // Select implementation: Simple BTB or GShare
-  // Select implementation: Simple BTB, GShare, Two-Level Local, or Perceptron
-  // controlled by Make argument GSHARE (passed as -DuseGShare=true/false)
-  // or TWOLEVEL (passed as -DuseTwoLevel=true/false)
-  val useGShare     = sys.props.getOrElse("useGShare", "true").toBoolean
-  val useTwoLevel   = sys.props.getOrElse("useTwoLevel", "false").toBoolean
-  val usePerceptron = sys.props.getOrElse("usePerceptronB", "false").toBoolean
+  // Select implementation: Simple BTB, GShare, Two-Level Local, Perceptron, or None
+  // controlled by Make argument MODEL (passed as -DuseXxx=true/false)
+  val useNone        = sys.props.getOrElse("useNone", "false").toBoolean
+  val useGShare      = sys.props.getOrElse("useGShare", "false").toBoolean
+  val useTwoLevel    = sys.props.getOrElse("useTwoLevel", "false").toBoolean
+  val usePerceptronT = sys.props.getOrElse("usePerceptronT", "false").toBoolean
+  val usePerceptronB = sys.props.getOrElse("usePerceptronB", "false").toBoolean
 
   // Instantiate Shared BTB (Target Storage)
   val btb = Module(new BranchTargetBuffer(entries = 16))
@@ -132,25 +132,55 @@ class InstructionFetch extends Module {
   btb.io.update_target := io.btb_update_target
   btb.io.update_taken  := io.btb_update_taken
 
-  // Instantiate Direction Predictor
-  val predictor = if (usePerceptron) {
-    Module(new PerceptronBPredictor(entries = 16, historyLength = 20))
+  // Prediction selection:
+  // - useNone: Always predict not taken (no predictor overhead)
+  // - Others: Use specified predictor
+  // Note: Check specific predictors first, useNone is the fallback
+  val pred_taken = if (usePerceptronB) {
+    val predictor = Module(new PerceptronBlackParrotPredictor(entries = 16, historyLength = 20))
+    predictor.io.pc := pc
+    predictor.io.update_valid  := io.btb_update_valid
+    predictor.io.update_pc     := io.btb_update_pc
+    predictor.io.update_target := io.btb_update_target
+    predictor.io.update_taken  := io.btb_update_taken
+    predictor.io.predicted_taken && btb.io.predicted_taken
+  } else if (usePerceptronT) {
+    val predictor = Module(new PerceptronTinyTapeoutPredictor(entries = 16, historyLength = 20))
+    predictor.io.pc := pc
+    predictor.io.update_valid  := io.btb_update_valid
+    predictor.io.update_pc     := io.btb_update_pc
+    predictor.io.update_target := io.btb_update_target
+    predictor.io.update_taken  := io.btb_update_taken
+    predictor.io.predicted_taken && btb.io.predicted_taken
   } else if (useTwoLevel) {
-    Module(new TwoLevelLocalPredictor(entries = 64, historyLength = 10))
+    val predictor = Module(new TwoLevelLocalPredictor(entries = 64, historyLength = 10))
+    predictor.io.pc := pc
+    predictor.io.update_valid  := io.btb_update_valid
+    predictor.io.update_pc     := io.btb_update_pc
+    predictor.io.update_target := io.btb_update_target
+    predictor.io.update_taken  := io.btb_update_taken
+    predictor.io.predicted_taken && btb.io.predicted_taken
   } else if (useGShare) {
-    Module(new GSharePredictor(entries = 16, historyLength = 36, phtIndexBits = 6))
+    val predictor = Module(new GSharePredictor(entries = 16, historyLength = 36, phtIndexBits = 6))
+    predictor.io.pc := pc
+    predictor.io.update_valid  := io.btb_update_valid
+    predictor.io.update_pc     := io.btb_update_pc
+    predictor.io.update_target := io.btb_update_target
+    predictor.io.update_taken  := io.btb_update_taken
+    predictor.io.predicted_taken && btb.io.predicted_taken
+  } else if (useNone) {
+    // Always predict not taken - simplest possible "predictor"
+    false.B
   } else {
-    Module(new BimodalPredictor(entries = 16))
+    // Default: BimodalPredictor (for btb mode)
+    val predictor = Module(new BimodalPredictor(entries = 16))
+    predictor.io.pc := pc
+    predictor.io.update_valid  := io.btb_update_valid
+    predictor.io.update_pc     := io.btb_update_pc
+    predictor.io.update_target := io.btb_update_target
+    predictor.io.update_taken  := io.btb_update_taken
+    predictor.io.predicted_taken && btb.io.predicted_taken
   }
-  predictor.io.pc := pc
-  predictor.io.update_valid  := io.btb_update_valid
-  predictor.io.update_pc     := io.btb_update_pc
-  predictor.io.update_target := io.btb_update_target
-  predictor.io.update_taken  := io.btb_update_taken
-
-  // Combine Predictions:
-  // Predict Taken = Predictor says Taken AND BTB has a valid target
-  val pred_taken = predictor.io.predicted_taken && btb.io.predicted_taken
 
   io.btb_predicted_taken  := pred_taken
   io.btb_predicted_target := btb.io.predicted_pc
