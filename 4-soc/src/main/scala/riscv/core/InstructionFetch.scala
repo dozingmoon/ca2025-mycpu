@@ -125,7 +125,7 @@ class InstructionFetch extends Module {
   val usePerceptronB = sys.props.getOrElse("usePerceptronB", "false").toBoolean
 
   // Instantiate Shared BTB (Target Storage)
-  val btb = Module(new BranchTargetBuffer(entries = 1024)) // ~7KB
+  val btb = Module(new BranchTargetBuffer(entries = 16)) // Reduced from 1024 to debug crash
   btb.io.pc := pc
   btb.io.update_valid  := io.btb_update_valid
   btb.io.update_pc     := io.btb_update_pc
@@ -173,7 +173,7 @@ class InstructionFetch extends Module {
     false.B
   } else {
     // Default: BimodalPredictor (for btb mode)
-    val predictor = Module(new BimodalPredictor(entries = 32768)) // ~8KB
+    val predictor = Module(new BimodalPredictor(entries = 16)) // Reduced entries
     predictor.io.pc := pc
     predictor.io.update_valid  := io.btb_update_valid
     predictor.io.update_pc     := io.btb_update_pc

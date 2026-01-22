@@ -10,6 +10,8 @@ import org.scalatest.flatspec.AnyFlatSpec
 import riscv.core.BranchTargetBuffer
 import riscv.core.BimodalPredictor
 import riscv.core.ReturnAddressStack
+import riscv.core.InstructionFetch
+import riscv.core.InstructionFetch
 
 class BranchTargetBufferTest extends AnyFlatSpec with ChiselScalatestTester {
   behavior.of("Branch Target Buffer")
@@ -428,6 +430,38 @@ class ReturnAddressStackTest extends AnyFlatSpec with ChiselScalatestTester {
 
       // TOS should be back to 0x2000
       dut.io.predicted_addr.expect(0x2000.U)
+    }
+  }
+}
+
+class InstructionFetchTest extends AnyFlatSpec with ChiselScalatestTester {
+  behavior.of("Instruction Fetch")
+
+  it should "prioritize BTB correction over ID Jump (invariant check)" in {
+    test(new InstructionFetch).withAnnotations(TestAnnotations.annos) { dut =>
+      dut.io.stall_flag_ctrl.poke(false.B)
+      dut.io.instruction_valid.poke(true.B)
+      dut.io.rom_instruction.poke(0x00000013.U) // NOP
+
+      // Scenario: Simultaneous BTB mispredict (correction) and ID jump
+      // Invariant: Correction wins because priority is: Pending > Correction > Jump
+      val correctionAddr = 0x4000L
+      val jumpAddr       = 0x8000L
+
+      dut.io.btb_mispredict.poke(true.B)
+      dut.io.btb_correction_addr.poke(correctionAddr.U)
+
+      dut.io.jump_flag_id.poke(true.B)
+      dut.io.jump_address_id.poke(jumpAddr.U)
+
+      // Step to latch registers/update PC
+      dut.clock.step()
+
+      // The instruction_address output reflects the PC register value (updated)
+      // or combinational next_pc depending on implementation. 
+      // InstructionFetch.scala: io.instruction_address := pc
+      // pc := next_pc (registered). So we expect the value AFTER the clock edge.
+      dut.io.instruction_address.expect(correctionAddr.U)
     }
   }
 }
